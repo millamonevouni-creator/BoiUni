@@ -1411,6 +1411,49 @@ class UserInterface {
       }
     });
   }
+
+  populateRacaDropdown(selectedBreed = '') {
+    const select = document.getElementById('animal-raca');
+    if (!select) return;
+
+    let racas = window.db.getRacas();
+
+    // Se a raça selecionada não estiver na lista de cadastradas, insere temporariamente
+    if (selectedBreed && !racas.some(r => r.nome.toLowerCase() === selectedBreed.toLowerCase().trim())) {
+      racas = [...racas, { id: 'temp', nome: selectedBreed }];
+    }
+
+    select.innerHTML = racas.map(r => `<option value="${r.nome}">${r.nome}</option>`).join('');
+
+    if (selectedBreed) {
+      select.value = selectedBreed;
+    }
+  }
+
+  renderRacasConfig() {
+    const listContainer = document.getElementById('config-racas-list');
+    if (!listContainer) return;
+
+    const racas = window.db.getRacas();
+
+    if (racas.length === 0) {
+      listContainer.innerHTML = `<p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 10px 0;">Nenhuma raça cadastrada.</p>`;
+      return;
+    }
+
+    listContainer.innerHTML = racas.map(r => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${r.nome}</span>
+        <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteRaca(${r.id})" title="Excluir Raça" style="padding: 2px;">
+          <i class="lucide-trash-2" style="width: 14px; height: 14px;"></i>
+        </button>
+      </div>
+    `).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
 }
 
 // Cria instância global

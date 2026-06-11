@@ -1029,6 +1029,7 @@ class AppController {
 
     this.setDefaultDates();
     this.toggleAnimalOrigemFields('');
+    window.ui.populateRacaDropdown();
     
     // Habilita campo Origem e Peso
     const oSelect = document.getElementById('animal-origem');
@@ -1066,7 +1067,7 @@ class AppController {
     document.getElementById('animal-brinco').value = animal.brinco;
     document.getElementById('animal-nome').value = animal.nome || '';
     document.getElementById('animal-sexo').value = animal.sexo;
-    document.getElementById('animal-raca').value = animal.raca;
+    window.ui.populateRacaDropdown(animal.raca);
     document.getElementById('animal-categoria').value = animal.categoria;
     document.getElementById('animal-nascimento').value = animal.nascimento;
     
@@ -1316,6 +1317,7 @@ class AppController {
       const el = document.getElementById(id);
       if (el) el.value = val;
     }
+    window.ui.renderRacasConfig();
   }
 
   async handleConfiguracoesSubmit(data) {
@@ -2645,6 +2647,35 @@ class AppController {
     if (resArrobaAnimal) resArrobaAnimal.textContent = `~ ${arrobasGained.toFixed(1)} @ (carcaça)`;
     if (resWeightTotal) resWeightTotal.textContent = totalWeightFormatted;
     if (resRevenue) resRevenue.textContent = formatter.format(totalRevenue);
+  }
+
+  handleAddRaca() {
+    const input = document.getElementById('config-raca-nome');
+    if (!input) return;
+
+    const nome = input.value.trim();
+    if (!nome) {
+      window.ui.showToast('Digite um nome para a raça.', 'error');
+      return;
+    }
+
+    const added = window.db.addRaca(nome);
+    if (!added) {
+      window.ui.showToast('Esta raça já está cadastrada.', 'error');
+      return;
+    }
+
+    input.value = '';
+    window.ui.renderRacasConfig();
+    window.ui.showToast('Raça adicionada com sucesso!');
+  }
+
+  handleDeleteRaca(id) {
+    if (confirm('Tem certeza de que deseja excluir esta raça? Isso não alterará os animais já cadastrados, mas removerá a opção do cadastro de novos animais.')) {
+      window.db.deleteRaca(id);
+      window.ui.renderRacasConfig();
+      window.ui.showToast('Raça excluída.');
+    }
   }
 }
 

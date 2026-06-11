@@ -1414,6 +1414,21 @@
               </form>
             </div>
 
+            <!-- Gerenciar Raças -->
+            <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
+              <h3><i class="lucide-settings-2"></i> Cadastro de Raças</h3>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+                Adicione ou exclua as raças disponíveis no sistema para o cadastro dos animais.
+              </p>
+              <form id="form-config-raca" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); window.app.handleAddRaca();">
+                <input type="text" id="config-raca-nome" placeholder="Nova Raça (Ex: Nelore)" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+              </form>
+              <div id="config-racas-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
+                <!-- Lista de raças populada dinamicamente -->
+              </div>
+            </div>
+
             <!-- Backup e Manutenção -->
             <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
               <h3><i class="lucide-database"></i> Manutenção</h3>
@@ -1497,7 +1512,9 @@
             </div>
             <div class="form-group">
               <label for="animal-raca">Raça *</label>
-              <input type="text" id="animal-raca" name="raca" value="Nelore" placeholder="Ex: Nelore" required>
+              <select id="animal-raca" name="raca" required>
+                <!-- Populado dinamicamente -->
+              </select>
             </div>
             <div class="form-group">
               <label for="animal-categoria">Categoria *</label>

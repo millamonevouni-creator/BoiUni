@@ -9,7 +9,8 @@ const DB_KEYS = {
   CLIENTES: 'boiuni_clientes',
   CONFIGURACOES: 'boiuni_configuracoes',
   DESPESAS: 'boiuni_despesas',
-  CUSTOS_FAZENDA: 'boiuni_custos_fazenda'
+  CUSTOS_FAZENDA: 'boiuni_custos_fazenda',
+  RACAS: 'boiuni_racas'
 };
 
 // Configuração Supabase
@@ -25,6 +26,15 @@ if (window.supabase) {
 }
 
 // Dados semente para inicialização de novos usuários
+const DEFAULT_RACAS = [
+  { id: 1, nome: 'Nelore' },
+  { id: 2, nome: 'Angus' },
+  { id: 3, nome: 'Brangus' },
+  { id: 4, nome: 'Guzerá' },
+  { id: 5, nome: 'Senepol' },
+  { id: 6, nome: 'Cruzamento Industrial' }
+];
+
 const MOCK_CLIENTES = [
   { id: 1, nome: 'João da Silva', telefone: '(17) 99887-7665', cidade: 'São José do Rio Preto', tipo: 'Fornecedor' },
   { id: 2, nome: 'Fazenda Santa Maria', telefone: '(16) 99112-2334', cidade: 'Ribeirão Preto', tipo: 'Fornecedor' },
@@ -111,6 +121,9 @@ class LocalDB {
     if (!localStorage.getItem(DB_KEYS.CUSTOS_FAZENDA)) {
       localStorage.setItem(DB_KEYS.CUSTOS_FAZENDA, JSON.stringify([]));
     }
+    if (!localStorage.getItem(DB_KEYS.RACAS)) {
+      localStorage.setItem(DB_KEYS.RACAS, JSON.stringify(DEFAULT_RACAS));
+    }
 
     // Sincroniza em segundo plano se o usuário já estiver logado
     this.getCurrentSession().then(session => {
@@ -185,6 +198,7 @@ class LocalDB {
     await supabaseClient.from('compras').delete().eq('user_id', uId);
     await supabaseClient.from('pesagens').delete().eq('user_id', uId);
     // Depois as tabelas principais
+    await supabaseClient.from('racas').delete().eq('user_id', uId);
     await supabaseClient.from('animais').delete().eq('user_id', uId);
     await supabaseClient.from('clientes').delete().eq('user_id', uId);
   }
@@ -217,7 +231,7 @@ class LocalDB {
     console.log("Sincronizando rebanho do Supabase...");
     try {
       // Busca tabelas do usuário autenticado (RLS garante o isolamento)
-      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda] = await Promise.all([
+      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas] = await Promise.all([
         supabaseClient.from('clientes').select('*'),
         supabaseClient.from('animais').select('*').order('id', { ascending: true }),
         supabaseClient.from('pesagens').select('*'),
@@ -226,7 +240,8 @@ class LocalDB {
         supabaseClient.from('nascimentos').select('*'),
         supabaseClient.from('configuracoes').select('*').maybeSingle(),
         supabaseClient.from('despesas').select('*'),
-        supabaseClient.from('custos_fazenda').select('*')
+        supabaseClient.from('custos_fazenda').select('*'),
+        supabaseClient.from('racas').select('*')
       ]);
 
       if (rClientes.error) throw rClientes.error;
@@ -238,6 +253,7 @@ class LocalDB {
       if (rConfig.error) throw rConfig.error;
       if (rDespesas.error) throw rDespesas.error;
       if (rCustosFazenda.error) throw rCustosFazenda.error;
+      if (rRacas.error) throw rRacas.error;
 
       // Salva no localStorage local
       this._set(DB_KEYS.CLIENTES, rClientes.data);
@@ -249,6 +265,7 @@ class LocalDB {
       this._set(DB_KEYS.CONFIGURACOES, rConfig.data || {});
       this._set(DB_KEYS.DESPESAS, rDespesas.data);
       this._set(DB_KEYS.CUSTOS_FAZENDA, rCustosFazenda.data);
+      this._set(DB_KEYS.RACAS, rRacas.data);
 
       // Se todas as tabelas vieram vazias, apenas registra no console
       if (rAnimais.data.length === 0 && rClientes.data.length === 0) {
@@ -836,6 +853,51 @@ class LocalDB {
     return config;
   }
 
+  // --- RACAS ---
+  getRacas() {
+    return this._get(DB_KEYS.RACAS) || [];
+  }
+
+  addRaca(nome) {
+    const data = this.getRacas();
+    const cleanNome = nome.trim();
+    if (!cleanNome) return null;
+
+    const exists = data.some(r => r.nome.toLowerCase() === cleanNome.toLowerCase());
+    if (exists) return null;
+
+    const newRaca = {
+      id: this._nextId(DB_KEYS.RACAS),
+      nome: cleanNome
+    };
+    data.push(newRaca);
+    this._set(DB_KEYS.RACAS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('racas').insert({
+        id: newRaca.id,
+        nome: newRaca.nome
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar raça no Supabase:", error);
+      });
+    }
+
+    return newRaca;
+  }
+
+  deleteRaca(id) {
+    let data = this.getRacas();
+    data = data.filter(r => r.id !== parseInt(id));
+    this._set(DB_KEYS.RACAS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('racas').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar raça no Supabase:", error);
+        });
+    }
+  }
+
   // --- EXPORTAR / IMPORTAR BACKUP ---
   exportData() {
     const backup = {
@@ -847,7 +909,8 @@ class LocalDB {
       clientes: this.getClients(),
       configuracoes: this.getConfiguracoes(),
       despesas: this.getExpenses(),
-      custos_fazenda: this.getPropertyCosts()
+      custos_fazenda: this.getPropertyCosts(),
+      racas: this.getRacas()
     };
     return JSON.stringify(backup, null, 2);
   }
@@ -864,6 +927,7 @@ class LocalDB {
       if (data.configuracoes) this._set(DB_KEYS.CONFIGURACOES, data.configuracoes);
       if (data.despesas && Array.isArray(data.despesas)) this._set(DB_KEYS.DESPESAS, data.despesas);
       if (data.custos_fazenda && Array.isArray(data.custos_fazenda)) this._set(DB_KEYS.CUSTOS_FAZENDA, data.custos_fazenda);
+      if (data.racas && Array.isArray(data.racas)) this._set(DB_KEYS.RACAS, data.racas);
       
       if (supabaseClient) {
         this.pushAllToSupabase(data);
@@ -892,7 +956,8 @@ class LocalDB {
         supabaseClient.from('pesagens').delete().neq('id', 0),
         supabaseClient.from('animais').delete().neq('id', 0),
         supabaseClient.from('clientes').delete().neq('id', 0),
-        supabaseClient.from('custos_fazenda').delete().neq('id', 0)
+        supabaseClient.from('custos_fazenda').delete().neq('id', 0),
+        supabaseClient.from('racas').delete().neq('id', 0)
       ]);
 
       // Insere na ordem certa com user_id explícito se necessário (ou defaults)
@@ -935,6 +1000,9 @@ class LocalDB {
       }
       if (data.custos_fazenda && data.custos_fazenda.length > 0) {
         await supabaseClient.from('custos_fazenda').insert(data.custos_fazenda.map(cf => ({ ...cf, user_id: uId })));
+      }
+      if (data.racas && data.racas.length > 0) {
+        await supabaseClient.from('racas').insert(data.racas.map(r => ({ ...r, user_id: uId })));
       }
 
       console.log("Semente de dados gravada com sucesso no Supabase.");
