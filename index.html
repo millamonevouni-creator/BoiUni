@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BoiUni - Gestão de Rebanho Bovino</title>
+  <meta name="description" content="Sistema completo de gestão pecuária, controle de pesagens, reprodução e finanças do rebanho.">
+  
+  <!-- PWA Manifest & Meta para Mobile -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#15803d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <!-- CSS Principal -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Google Fonts & Icones Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js para Gráficos Avançados -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+  <!-- LANDING PAGE (APRESENTAÇÃO DO BOIUNI) -->
+  <div id="landing-page" class="hidden">
+    <!-- Blobs Decorativos de Fundo -->
+    <div class="glass-blob blob-1"></div>
+    <div class="glass-blob blob-2"></div>
+    <div class="glass-blob blob-3"></div>
+
+    <!-- Header/Navbar -->
+    <header class="landing-header">
+      <div class="landing-nav-container">
+        <div class="landing-logo">
+          <i class="lucide-cow"></i>
+          <h1>BoiUni</h1>
+        </div>
+        <nav class="landing-nav-links">
+          <a href="#features">Recursos</a>
+          <a href="#simulator">Simulador</a>
+          <a href="#about">Por que escolher?</a>
+          <a href="#pwa-guide">Como Instalar</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <div class="landing-nav-actions">
+          <button class="btn btn-secondary" onclick="window.app.openAuthModal('login', event)">Entrar</button>
+          <button class="btn btn-primary" onclick="window.app.openAuthModal('signup', event)">Criar Conta Grátis</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="landing-hero">
+      <div class="landing-hero-content">
+        <span class="badge badge-success badge-pulse" style="margin-bottom: 16px;">Plataforma Educacional 100% Gratuita</span>
+        <h2>Gestão Pecuária Inteligente e Sem Complicações</h2>
+        <p>O BoiUni foi feito para pequenos e médios produtores rurais. Controle pesagens (GMD), nascimentos, compras, vendas e tire relatórios do seu rebanho de forma simples, rápida e offline direto no pasto.</p>
+        <div class="landing-hero-buttons">
+          <button class="btn btn-primary btn-lg" onclick="window.app.openAuthModal('signup', event)">
+            Começar Agora Grátis <i class="lucide-arrow-right"></i>
+          </button>
+          <a href="#features" class="btn btn-secondary btn-lg">Ver Recursos</a>
+        </div>
+      </div>
+      <div class="landing-hero-mockup">
+        <div class="mockup-frame">
+          <div class="mockup-header">
+            <div class="mockup-dot red"></div>
+            <div class="mockup-dot yellow"></div>
+            <div class="mockup-dot green"></div>
+            <div class="mockup-url">boiuni.vercel.app</div>
+          </div>
+          <div class="mockup-screen" id="hero-mockup-screen" data-active-view="dashboard">
+            <!-- Sidebar comum do mockup -->
+            <div class="mockup-sidebar">
+              <div class="mockup-logo-part"><i class="lucide-cow"></i> BoiUni</div>
+              <div class="mockup-menu-item active" data-mock-tab="dashboard"></div>
+              <div class="mockup-menu-item" data-mock-tab="weight"></div>
+              <div class="mockup-menu-item" data-mock-tab="reproducao"></div>
+              <div class="mockup-menu-item" data-mock-tab="financial"></div>
+              <div class="mockup-menu-item" data-mock-tab="reports"></div>
+            </div>
+            
+            <div class="mockup-main">
+              <div class="mockup-topbar">
+                <div class="mockup-topbar-profile"></div>
+              </div>
+              
+              <!-- Visualizações Dinâmicas do Mockup -->
+              <!-- 1. DASHBOARD VIEW -->
+              <div class="mockup-view active" id="mockup-view-dashboard">
+                <div class="mockup-grid">
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Rebanho</span>
+                    <span class="mock-card-val">142</span>
+                  </div>
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Média</span>
+                    <span class="mock-card-val">420kg</span>
+                  </div>
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">GMD</span>
+                    <span class="mock-card-val">0.9kg</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area">
+                  <div class="mock-chart-lines">
+                    <svg viewBox="0 0 200 65" class="mockup-svg-chart">
+                      <path d="M10,55 Q40,35 70,40 T130,20 T190,10" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" />
+                      <circle cx="190" cy="10" r="4" fill="var(--accent)" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 2. WEIGHT VIEW -->
+              <div class="mockup-view" id="mockup-view-weight">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Maior Ganho</span>
+                    <span class="mock-card-val" style="color: var(--accent);">+1.4kg/dia</span>
+                  </div>
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Última Pesa</span>
+                    <span class="mock-card-val">480kg</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area">
+                  <div class="mock-chart-bars">
+                    <div class="mock-bar" style="height: 35%;"></div>
+                    <div class="mock-bar" style="height: 55%;"></div>
+                    <div class="mock-bar" style="height: 70%;"></div>
+                    <div class="mock-bar" style="height: 80%;"></div>
+                    <div class="mock-bar" style="height: 95%;"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 3. REPRODUCTION VIEW -->
+              <div class="mockup-view" id="mockup-view-reproducao">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Nascimentos</span>
+                    <span class="mock-card-val">12 bezerros</span>
+                  </div>
+                  <div class="mockup-card">
+                    <span class="mock-card-lbl">Parto Previsto</span>
+                    <span class="mock-card-val" style="color: var(--warning);">3 este mês</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 8px; font-size: 8px;">
+                  <div class="mock-genealogy">
+                    <div class="gene-node parent"><i class="lucide-venus"></i> Vaca Estrela</div>
+                    <div class="gene-connector"></div>
+                    <div class="gene-node child"><i class="lucide-baby"></i> Bezerro Estrelinha</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 4. FINANCIAL VIEW -->
+              <div class="mockup-view" id="mockup-view-financial">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="mockup-card" style="border-left-color: var(--primary);">
+                    <span class="mock-card-lbl">Vendas</span>
+                    <span class="mock-card-val" style="color: var(--primary);">R$ 48k</span>
+                  </div>
+                  <div class="mockup-card" style="border-left-color: var(--danger);">
+                    <span class="mock-card-lbl">Compras</span>
+                    <span class="mock-card-val" style="color: var(--danger);">R$ 18k</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 6px;">
+                  <div class="mock-table">
+                    <div class="mock-table-row header">
+                      <span>Animal</span><span>Preço</span>
+                    </div>
+                    <div class="mock-table-row">
+                      <span>Brinco 402</span><span>R$ 4.200</span>
+                    </div>
+                    <div class="mock-table-row">
+                      <span>Brinco 350</span><span>R$ 3.800</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 5. REPORTS VIEW -->
+              <div class="mockup-view" id="mockup-view-reports">
+                <div class="mockup-report-sheet">
+                  <div class="mock-sheet-header">
+                    <span>BOIUNI - RELATÓRIO DO REBANHO</span>
+                  </div>
+                  <div class="mock-sheet-lines">
+                    <div class="mock-sheet-line" style="width: 80%;"></div>
+                    <div class="mock-sheet-line" style="width: 95%;"></div>
+                    <div class="mock-sheet-line" style="width: 60%;"></div>
+                    <div class="mock-sheet-line" style="width: 75%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="landing-features">
+      <div class="section-header">
+        <span class="badge badge-success">Recursos Práticos</span>
+        <h3>Tudo o que você precisa para gerenciar seu rebanho</h3>
+        <p>Funcionalidades essenciais sem a complexidade de sistemas pesados e caros.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card" data-feature="weight" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-scale"></i></div>
+          <h4>Controle de Peso (GMD)</h4>
+          <p>Acompanhe a evolução do peso de cada boi ou vaca e veja o Ganho Médio Diário automaticamente em gráficos interativos.</p>
+        </div>
+        <div class="feature-card" data-feature="reproducao" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-baby"></i></div>
+          <h4>Nascimentos & Reprodução</h4>
+          <p>Registre novos nascimentos informando matriz (mãe) e reprodutor (pai), criando a árvore de genealogia do bezerro.</p>
+        </div>
+        <div class="feature-card" data-feature="financial" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-arrow-left-right"></i></div>
+          <h4>Compras e Vendas</h4>
+          <p>Controle financeiro simples de entradas e saídas de animais com cálculo automático de lucro baseado nos valores de compra.</p>
+        </div>
+        <div class="feature-card" data-feature="reports" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-file-text"></i></div>
+          <h4>Relatórios Prontos para PDF</h4>
+          <p>Gere listas de estoque ativo, animais vendidos, nascimentos ocorridos e ganho de peso em um clique prontos para imprimir.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Simulador Pecuário Section -->
+    <section id="simulator" class="landing-simulator">
+      <div class="section-header">
+        <span class="badge badge-success">Simulador de Resultados</span>
+        <h3>Calcule a Evolução e o Lucro Pecuário</h3>
+        <p>Veja na prática como o controle preciso de pesagem e GMD impacta diretamente no faturamento do seu rebanho.</p>
+      </div>
+      <div class="simulator-container">
+        <!-- Sliders de Entrada -->
+        <div class="simulator-controls glass-card">
+          <div class="control-group">
+            <div class="control-label">
+              <span>Tamanho do Rebanho</span>
+              <strong id="sim-val-animals">50 cabeças</strong>
+            </div>
+            <input type="range" id="sim-animals" min="5" max="300" value="50" step="5" class="sim-slider">
+          </div>
+          
+          <div class="control-group">
+            <div class="control-label">
+              <span>Ganho Médio Diário (GMD)</span>
+              <strong id="sim-val-gmd">0.8 kg/dia</strong>
+            </div>
+            <input type="range" id="sim-gmd" min="0.3" max="1.8" value="0.8" step="0.1" class="sim-slider">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Tempo de Engorda (Dias)</span>
+              <strong id="sim-val-days">120 dias</strong>
+            </div>
+            <input type="range" id="sim-days" min="30" max="360" value="120" step="10" class="sim-slider">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Preço da Arroba (@)</span>
+              <strong id="sim-val-arroba">R$ 280</strong>
+            </div>
+            <input type="range" id="sim-arroba" min="150" max="400" value="280" step="5" class="sim-slider">
+          </div>
+        </div>
+
+        <!-- Resultados Calculados -->
+        <div class="simulator-results glass-card">
+          <div class="result-header">
+            <h4>Projeção de Rendimento</h4>
+            <span class="badge badge-success">Estimativa de Ganho</span>
+          </div>
+          <div class="result-grid">
+            <div class="result-item">
+              <span class="result-label">Peso Ganho por Animal</span>
+              <div class="result-value" id="sim-res-weight-animal">96.0 kg</div>
+              <span class="result-detail" id="sim-res-arroba-animal">~ 3.2 @ (carcaça)</span>
+            </div>
+            <div class="result-item">
+              <span class="result-label">Peso Ganho pelo Rebanho</span>
+              <div class="result-value" id="sim-res-weight-total">4.8 toneladas</div>
+              <span class="result-detail">Faturamento de engorda acumulado</span>
+            </div>
+            <div class="result-item result-highlight">
+              <span class="result-label">Faturamento Adicional Estimado</span>
+              <div class="result-value" id="sim-res-revenue">R$ 44.800</div>
+              <span class="result-detail">Com base no preço da @ informado</span>
+            </div>
+          </div>
+          <p class="simulator-disclaimer">
+            * Cálculo estimado assumindo rendimento médio de carcaça de 50%. A realização de pesagens constantes com o BoiUni ajuda a rastrear anomalias de engorda precocemente.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Por que escolher Section (Offline-First) -->
+    <section id="about" class="landing-about">
+      <div class="about-container">
+        <div class="about-image">
+          <div class="offline-badge">
+            <i class="lucide-wifi-off"></i>
+            <span>Funciona Sem Internet!</span>
+          </div>
+          <div class="about-illustration">
+            <div class="ill-circle"></div>
+            <i class="lucide-cloud-lightning"></i>
+          </div>
+        </div>
+        <div class="about-text">
+          <span class="badge badge-success" style="margin-bottom: 12px;">Offline-First</span>
+          <h3>Desenvolvido para a realidade do campo</h3>
+          <p>Sabemos que a internet no pasto nem sempre está disponível. É por isso que o BoiUni foi construído com a tecnologia **Offline-First**.</p>
+          <ul class="about-list">
+            <li><i class="lucide-check-circle"></i> <strong>Sempre Ativo:</strong> Todos os seus dados são salvos localmente e você pode cadastrar e pesar seus animais mesmo sem sinal.</li>
+            <li><i class="lucide-check-circle"></i> <strong>Sincronização na Nuvem:</strong> Assim que detectar internet, os dados são atualizados de forma invisível no Supabase.</li>
+            <li><i class="lucide-check-circle"></i> <strong>Seguro e Privado:</strong> Seus dados são protegidos por senha e isolados do rebanho de outros produtores.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- PWA Install Guide Section -->
+    <section id="pwa-guide" class="landing-pwa">
+      <div class="section-header">
+        <span class="badge badge-success">Instalação Simples</span>
+        <h3>Leve o BoiUni no seu bolso</h3>
+        <p>Instale nosso sistema direto no celular ou no computador sem depender de lojas de aplicativos.</p>
+      </div>
+      <div class="pwa-container">
+        <div class="pwa-steps-list">
+          <div class="pwa-step-card">
+            <div class="step-num-badge">1</div>
+            <div class="step-card-content">
+              <h4>Acesse pelo Celular</h4>
+              <p>Abra este site no seu smartphone usando o Chrome (Android) ou Safari (iPhone/iOS).</p>
+            </div>
+          </div>
+          <div class="pwa-step-card">
+            <div class="step-num-badge">2</div>
+            <div class="step-card-content">
+              <h4>Abra o Menu de Instalação</h4>
+              <p>No Android ou PC, clique no botão "Instalar App" no menu. No iPhone, clique no ícone de compartilhar do Safari.</p>
+            </div>
+          </div>
+          <div class="pwa-step-card">
+            <div class="step-num-badge">3</div>
+            <div class="step-card-content">
+              <h4>Adicione à Tela Inicial</h4>
+              <p>Selecione "Adicionar à Tela de Início" e o BoiUni se tornará um aplicativo nativo na tela do seu celular!</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mockup do Celular PWA -->
+        <div class="pwa-mockup-area">
+          <div class="phone-mockup">
+            <div class="phone-speaker"></div>
+            <div class="phone-screen">
+              <div class="phone-app-header">
+                <i class="lucide-cow"></i>
+                <span>BoiUni</span>
+              </div>
+              <div class="phone-app-content">
+                <div class="phone-card mini-chart-card">
+                  <span class="phone-card-title">Ganho Diário</span>
+                  <div class="phone-card-value">+1.25 kg</div>
+                  <div class="mini-bar-chart">
+                    <div class="bar" style="height: 40%;"></div>
+                    <div class="bar" style="height: 60%;"></div>
+                    <div class="bar" style="height: 80%;"></div>
+                    <div class="bar" style="height: 95%;"></div>
+                  </div>
+                </div>
+                <div class="phone-card mini-stat-card">
+                  <div class="phone-stat-row">
+                    <span>Rebanho:</span>
+                    <strong>142 cab.</strong>
+                  </div>
+                  <div class="phone-stat-row">
+                    <span>Peso Médio:</span>
+                    <strong>420 kg</strong>
+                  </div>
+                </div>
+              </div>
+              <!-- Prompt de Instalação Animado do PWA -->
+              <div class="phone-install-prompt">
+                <i class="lucide-download-cloud"></i>
+                <div class="prompt-text">
+                  <strong>Instalar BoiUni</strong>
+                  <span>Adicionar à tela inicial</span>
+                </div>
+                <div class="prompt-btn">Instalar</div>
+              </div>
+            </div>
+            <div class="phone-home-btn"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section Accordion -->
+    <section id="faq" class="landing-faq">
+      <div class="section-header">
+        <span class="badge badge-success">Dúvidas</span>
+        <h3>Perguntas Frequentes</h3>
+        <p>Confira as respostas para as principais dúvidas sobre o funcionamento do BoiUni.</p>
+      </div>
+      <div class="faq-container">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>O BoiUni é gratuito de verdade?</span>
+            <i class="lucide-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Sim! O BoiUni é uma plataforma educacional e de livre uso. Ele não possui assinaturas, taxas ocultas ou limites de cadastro de animais. Nosso objetivo é democratizar a tecnologia de gestão pecuária para pequenos e médios produtores familiares.</p>
+          </div>
+        </div>
+        
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Como o sistema funciona sem internet no pasto?</span>
+            <i class="lucide-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>O BoiUni utiliza a tecnologia PWA (Progressive Web App) e armazena os dados em um banco de dados local seguro no seu navegador. Você pode fazer lançamentos e pesagens offline tranquilamente. Assim que houver sinal de internet, os dados sincronizam automaticamente e de forma invisível com a nuvem.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Meus dados estão seguros e privados?</span>
+            <i class="lucide-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Sim. Seus dados são salvos localmente e protegidos por senha na nuvem através do Supabase. Cada produtor cria sua conta individual e os dados de um rebanho não se misturam com os de outros fazendeiros. Apenas você tem acesso à sua conta e relatórios.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Eu preciso baixar alguma coisa na loja de aplicativos?</span>
+            <i class="lucide-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Não. O BoiUni roda direto no navegador e se instala como um PWA, ocupando pouquíssimo espaço na memória do celular. Ele funciona igual a um aplicativo nativo do Google Play ou da App Store, mas é atualizado automaticamente sem você precisar fazer downloads de pacotes pesados.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <i class="lucide-cow"></i>
+          <span>BoiUni</span>
+        </div>
+        <p>© 2026 BoiUni - Sistema Educacional Gratuito. Desenvolvido para fortalecer o agronegócio familiar.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO) -->
+  <div id="auth-overlay" class="hidden">
+    <div class="auth-card">
+      <div class="auth-header" style="position: relative;">
+        <button type="button" onclick="window.app.closeAuthModal()" style="position: absolute; right: 0; top: 0; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); padding: 0 4px;">&times;</button>
+        <div class="auth-logo"><i class="lucide-cow"></i></div>
+        <h2 id="auth-title">BoiUni</h2>
+        <p id="auth-subtitle">Acesse o controle do seu rebanho</p>
+      </div>
+      <form id="form-auth" class="auth-form">
+        <div class="form-group hidden" id="auth-name-group">
+          <label for="auth-name">Nome Completo *</label>
+          <input type="text" id="auth-name" placeholder="Ex: João da Silva">
+        </div>
+        <div class="form-group" id="auth-email-group">
+          <label for="auth-email">E-mail *</label>
+          <input type="email" id="auth-email" required placeholder="seu@email.com">
+        </div>
+        <div class="form-group" id="auth-password-group">
+          <label for="auth-password">Senha *</label>
+          <div class="password-input-container">
+            <input type="password" id="auth-password" placeholder="Digite sua senha" minlength="6">
+            <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('auth-password', this)">
+              <i class="lucide-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group hidden" id="auth-confirm-password-group">
+          <label for="auth-confirm-password">Confirmar Senha *</label>
+          <div class="password-input-container">
+            <input type="password" id="auth-confirm-password" placeholder="Confirme sua senha" minlength="6">
+            <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('auth-confirm-password', this)">
+              <i class="lucide-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div style="text-align: right; margin-top: -8px;" id="auth-forgot-container">
+          <a href="#" onclick="window.app.setAuthMode('forgot', event)" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">Esqueci minha senha</a>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-auth-submit" style="margin-top: 10px; width: 100%;">
+          Entrar
+        </button>
+      </form>
+      <div class="auth-footer">
+        <span id="auth-toggle-msg">Não tem uma conta?</span>
+        <a href="#" id="auth-toggle-link" onclick="window.app.toggleAuthMode(event)">Cadastre-se</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="hidden">
+    
+    <!-- BARRA LATERAL (SIDEBAR) -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <i class="lucide-cow"></i>
+        <div style="display: flex; flex-direction: column;">
+          <h1>BoiUni</h1>
+          <span id="user-greeting-sidebar" style="font-size: 11px; color: rgba(255,255,255,0.6); display: block; margin-top: 2px;">Carregando...</span>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li class="menu-item active" data-tab="dashboard">
+          <a href="#"><i class="lucide-layout-dashboard"></i> Dashboard</a>
+        </li>
+        <li class="menu-item" data-tab="animais">
+          <a href="#"><i class="lucide-cow"></i> Animais</a>
+        </li>
+        <li class="menu-item" data-tab="pesagens">
+          <a href="#"><i class="lucide-scale"></i> Controle de Peso</a>
+        </li>
+        <li class="menu-item" data-tab="reproducao">
+          <a href="#"><i class="lucide-heart-pulse"></i> Reprodução</a>
+        </li>
+        <li class="menu-item" data-tab="transacoes">
+          <a href="#"><i class="lucide-arrow-left-right"></i> Compras / Vendas</a>
+        </li>
+        <li class="menu-item" data-tab="clientes">
+          <a href="#"><i class="lucide-users"></i> Clientes / Fornecedores</a>
+        </li>
+        <li class="menu-item" data-tab="relatorios">
+          <a href="#"><i class="lucide-file-text"></i> Relatórios</a>
+        </li>
+        <li class="menu-item" data-tab="configuracoes">
+          <a href="#"><i class="lucide-settings"></i> Configurações</a>
+        </li>
+        <li class="menu-item menu-item-install hidden" id="menu-item-install">
+          <a href="#" onclick="window.app.triggerPwaInstall(event)"><i class="lucide-download-cloud"></i> Instalar App</a>
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary btn-sm btn-logout" onclick="window.db.logout()" style="width: 100%;">
+          <i class="lucide-log-out"></i> Sair
+        </button>
+        <span style="font-size: 11px; text-align: center; color: rgba(255,255,255,0.4); margin-top: 8px;">v1.0.0</span>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+      
+      <!-- HEADER DO TOPO -->
+      <header class="top-header">
+        <div class="header-title">
+          <h2 id="view-title">Painel de Controle</h2>
+        </div>
+        <div class="header-actions">
+          <button id="btn-theme-toggle" class="btn-theme-toggle" title="Alterar Tema">
+            <i class="lucide-moon"></i>
+          </button>
+          <button class="btn btn-primary" onclick="window.app.openNewAnimalModal()">
+            <i class="lucide-plus"></i> Novo Animal
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTEÚDO DINÂMICO (PAINÉIS) -->
+      
+      <!-- 1. PAINEL DASHBOARD -->
+      <div id="panel-dashboard" class="content-panel active">
+        <!-- Grid de Métricas -->
+        <div class="metrics-grid">
+          <div class="metric-card card-total">
+            <div class="metric-info">
+              <h4>Total Animais</h4>
+              <div class="metric-value" id="dash-total-animais">0</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-cow"></i></div>
+          </div>
+          <div class="metric-card card-machos">
+            <div class="metric-info">
+              <h4>Machos</h4>
+              <div class="metric-value" id="dash-total-machos">0</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-mars"></i></div>
+          </div>
+          <div class="metric-card card-femeas">
+            <div class="metric-info">
+              <h4>Fêmeas</h4>
+              <div class="metric-value" id="dash-total-femeas">0</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-venus"></i></div>
+          </div>
+          <div class="metric-card card-bezerros">
+            <div class="metric-info">
+              <h4>Bezerros</h4>
+              <div class="metric-value" id="dash-total-bezerros">0</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-baby"></i></div>
+          </div>
+          <div class="metric-card card-peso">
+            <div class="metric-info">
+              <h4>Peso Médio</h4>
+              <div class="metric-value" id="dash-peso-medio">0 kg</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-scale"></i></div>
+          </div>
+        </div>
+
+        <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 32px;">
+          <div class="metric-card">
+            <div class="metric-info">
+              <h4>Comprados no Mês</h4>
+              <div class="metric-value" id="dash-comprados-mes">0</div>
+            </div>
+            <div class="metric-icon" style="background-color: var(--warning-light); color: var(--warning);"><i class="lucide-trending-down"></i></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-info">
+              <h4>Vendidos no Mês</h4>
+              <div class="metric-value" id="dash-vendidos-mes">0</div>
+            </div>
+            <div class="metric-icon" style="background-color: var(--primary-light); color: var(--primary);"><i class="lucide-trending-up"></i></div>
+          </div>
+          <div class="metric-card card-lucro">
+            <div class="metric-info">
+              <h4>Lucro Estimado</h4>
+              <div class="metric-value" id="dash-lucro-estimado">R$ 0,00</div>
+            </div>
+            <div class="metric-icon"><i class="lucide-dollar-sign"></i></div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="dashboard-charts">
+          <div class="chart-card">
+            <h3><i class="lucide-bar-chart-2"></i> Fluxo Financeiro (Compras vs Vendas)</h3>
+            <div class="chart-container">
+              <canvas id="chartFinancialFlow"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3><i class="lucide-pie-chart"></i> Categorias</h3>
+            <div class="chart-container">
+              <canvas id="chartCategoryDistribution"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabelas Rápidas no Dashboard -->
+        <div class="dashboard-charts">
+          <div class="chart-card" style="grid-column: span 1;">
+            <h3><i class="lucide-history"></i> Adicionados Recentemente</h3>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Código/Nome</th>
+                    <th>Brinco</th>
+                    <th>Sexo</th>
+                    <th>Categoria</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-recent-animals-list">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="chart-card" style="grid-column: span 1;">
+            <h3><i class="lucide-arrow-up-right"></i> Últimas Vendas</h3>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Animal</th>
+                    <th>Comprador</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-recent-sales-list">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. PAINEL LISTA DE ANIMAIS -->
+      <div id="panel-animais" class="content-panel">
+        <div class="table-card">
+          <div class="table-header-bar">
+            <div class="table-title">
+              <h3>Cadastro de Rebanho</h3>
+            </div>
+            <div class="table-filters">
+              <ul class="filter-tabs" id="animal-filter-tab">
+                <li class="filter-tab active" data-filter="Todos">Todos</li>
+                <li class="filter-tab" data-filter="Bezerros">Bezerros</li>
+                <li class="filter-tab" data-filter="Novilhas">Novilhas</li>
+                <li class="filter-tab" data-filter="Bois">Bois</li>
+                <li class="filter-tab" data-filter="Vacas">Vacas</li>
+                <li class="filter-tab" data-filter="Vendidos">Vendidos</li>
+              </ul>
+              
+              <div class="search-box">
+                <i class="lucide-search"></i>
+                <input type="text" id="animal-search-input" placeholder="Brinco, raça ou categoria...">
+              </div>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="boi-table">
+              <thead>
+                <tr>
+                  <th>Código / Nome</th>
+                  <th>Brinco</th>
+                  <th>Sexo</th>
+                  <th>Raça</th>
+                  <th>Categoria</th>
+                  <th>Peso Atual</th>
+                  <th>Nascimento</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="animals-list-tbody">
+                <!-- Injetado dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. PAINEL DE CONTROLE DE PESO -->
+      <div id="panel-pesagens" class="content-panel">
+        <div class="dashboard-charts" style="grid-template-columns: 1fr 2fr;">
+          
+          <!-- Formulário de Nova Peso -->
+          <div class="chart-card">
+            <h3><i class="lucide-scale"></i> Registrar Pesagem</h3>
+            <form id="form-weight" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group">
+                <label for="weight-animal-id">Animal</label>
+                <select id="weight-animal-id" name="animal_id" required class="filter-select" style="width: 100%">
+                  <!-- Populado dinamicamente -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="weight-peso">Peso (kg)</label>
+                <input type="number" id="weight-peso" name="peso" step="0.1" placeholder="Ex: 350.5" required>
+              </div>
+              <div class="form-group">
+                <label for="weight-data">Data da Pesagem</label>
+                <input type="date" id="weight-data" name="data" required>
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+                Salvar Pesagem
+              </button>
+            </form>
+          </div>
+
+          <!-- Histórico e Indicadores -->
+          <div class="chart-card">
+            <h3><i class="lucide-history"></i> Histórico do Animal</h3>
+            
+            <div id="weight-stats-container" class="profile-stats hidden" style="margin-bottom: 20px;">
+              <div class="stat-item">
+                <div class="stat-label">Peso Atual</div>
+                <div class="stat-value" id="w-stat-atual">- kg</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Ganho Total</div>
+                <div class="stat-value" id="w-stat-ganho">- kg</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Ganho Diário (GMD)</div>
+                <div class="stat-value" id="w-stat-gmd">- kg/dia</div>
+              </div>
+            </div>
+
+            <div id="weight-chart-wrapper" class="chart-container hidden" style="margin-bottom: 24px; height: 180px;">
+              <canvas id="chartIndividualWeight"></canvas>
+            </div>
+
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Peso</th>
+                    <th>Ganho</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="weight-history-tbody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted);">Selecione um animal à esquerda.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 4. PAINEL DE CONTROLE DE REPRODUÇÃO -->
+      <div id="panel-reproducao" class="content-panel">
+        <div class="dashboard-charts" style="grid-template-columns: 1fr 2fr;">
+          
+          <!-- Registrar Nascimento -->
+          <div class="chart-card">
+            <h3><i class="lucide-baby"></i> Registrar Nascimento</h3>
+            <form id="form-birth" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group">
+                <label for="birth-mae-id">Mãe (Matriz)</label>
+                <select id="birth-mae-id" name="mae_id" required class="filter-select" style="width: 100%">
+                  <!-- Injetado dinamicamente -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="birth-pai-id">Pai (Reprodutor - Opcional)</label>
+                <select id="birth-pai-id" name="pai_id" class="filter-select" style="width: 100%">
+                  <!-- Injetado dinamicamente -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="birth-brinco">Número do Brinco do Bezerro</label>
+                <input type="text" id="birth-brinco" name="brinco" placeholder="Ex: 5012" required>
+              </div>
+              <div class="form-group">
+                <label for="birth-nome">Nome do Bezerro (Opcional)</label>
+                <input type="text" id="birth-nome" name="nome" placeholder="Ex: Mimosa Filho">
+              </div>
+              <div class="form-group">
+                <label for="birth-sexo">Sexo</label>
+                <select id="birth-sexo" name="sexo" required class="filter-select" style="width: 100%">
+                  <option value="F">Fêmea (Bezerra)</option>
+                  <option value="M">Macho (Bezerro)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="birth-peso-ao-nascer">Peso ao Nascer (kg)</label>
+                <input type="number" id="birth-peso-ao-nascer" name="peso_ao_nascer" step="0.1" placeholder="Ex: 35.5" required>
+              </div>
+              <div class="form-group">
+                <label for="birth-data">Data de Nascimento</label>
+                <input type="date" id="birth-data" name="nascimento" required>
+              </div>
+              <div class="form-group">
+                <label for="birth-raca">Raça</label>
+                <input type="text" id="birth-raca" name="raca" value="Nelore" placeholder="Ex: Nelore">
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%">
+                Salvar Nascimento
+              </button>
+            </form>
+          </div>
+
+          <!-- Histórico de Nascimentos -->
+          <div class="chart-card">
+            <h3><i class="lucide-heart-pulse"></i> Lista de Nascimentos</h3>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Bezerro Nascido</th>
+                    <th>Sexo</th>
+                    <th>Mãe</th>
+                    <th>Pai</th>
+                    <th>Peso ao Nascer</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="reproduction-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 5. PAINEL DE TRANSAÇÕES (COMPRAS E VENDAS) -->
+      <div id="panel-transacoes" class="content-panel">
+        
+        <div class="tab-nav">
+          <button class="tab-btn active" id="btn-tab-compras" onclick="document.querySelectorAll('.trans-section').forEach(s => s.classList.add('hidden')); document.getElementById('sec-compras').classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+            <i class="lucide-trending-down"></i> Histórico de Compras (Entradas)
+          </button>
+          <button class="tab-btn" id="btn-tab-vendas" onclick="document.querySelectorAll('.trans-section').forEach(s => s.classList.add('hidden')); document.getElementById('sec-vendas').classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+            <i class="lucide-trending-up"></i> Histórico de Vendas (Saídas)
+          </button>
+        </div>
+
+        <!-- SEÇÃO COMPRAS -->
+        <div id="sec-compras" class="trans-section">
+          <div class="table-card">
+            <div class="table-header-bar">
+              <div class="table-title">
+                <h3>Registro de Entradas (Compras)</h3>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="window.app.openNewAnimalModal()">
+                Registrar Nova Compra (Cadastrar Animal)
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Animal</th>
+                    <th>Fornecedor</th>
+                    <th>Valor Pago</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="purchases-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO VENDAS -->
+        <div id="sec-vendas" class="trans-section hidden">
+          <div class="table-card">
+            <div class="table-header-bar">
+              <div class="table-title">
+                <h3>Registro de Saídas (Vendas)</h3>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="window.app.openSaleModal()">
+                Registrar Nova Venda
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Animal</th>
+                    <th>Comprador</th>
+                    <th>Peso Venda</th>
+                    <th>Valor Vendido</th>
+                    <th>Desconto</th>
+                    <th>Forma Pag.</th>
+                    <th>Lucro</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="sales-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 6. PAINEL DE CLIENTES (COMPRADORES & FORNECEDORES) -->
+      <div id="panel-clientes" class="content-panel">
+        <div class="dashboard-charts" style="grid-template-columns: 1fr 2fr;">
+          
+          <!-- Formulário de Cadastro de Cliente -->
+          <div class="chart-card">
+            <h3 id="client-form-title"><i class="lucide-user-plus"></i> Novo Cliente / Fornecedor</h3>
+            <form id="form-client" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group">
+                <label for="client-nome">Nome (Cliente / Fornecedor)</label>
+                <input type="text" id="client-nome" name="nome" placeholder="Ex: José Ferreira" required>
+              </div>
+              <div class="form-group">
+                <label for="client-telefone">Telefone</label>
+                <input type="text" id="client-telefone" name="telefone" placeholder="Ex: (17) 99887-1122" required>
+              </div>
+              <div class="form-group">
+                <label for="client-cidade">Cidade</label>
+                <input type="text" id="client-cidade" name="cidade" placeholder="Ex: Barretos - SP" required>
+              </div>
+              <div class="form-group">
+                <label for="client-tipo">Tipo</label>
+                <select id="client-tipo" name="tipo" required class="filter-select" style="width: 100%">
+                  <option value="Fornecedor">Fornecedor (Compra)</option>
+                  <option value="Comprador">Comprador (Venda)</option>
+                  <option value="Ambos">Ambos</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">
+                Salvar Cadastro
+              </button>
+            </form>
+          </div>
+
+          <!-- Listagem de Clientes -->
+          <div class="chart-card">
+            <div class="tab-nav" style="margin-bottom: 16px;">
+              <h3 style="margin-bottom: 0;"><i class="lucide-users"></i> Banco de Clientes & Fornecedores</h3>
+            </div>
+            
+            <h4 style="margin-top: 10px; margin-bottom: 10px; font-weight: 700; color: var(--primary);">Fornecedores</h4>
+            <div class="table-responsive" style="margin-bottom: 24px;">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Cidade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="suppliers-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+
+            <h4 style="margin-top: 20px; margin-bottom: 10px; font-weight: 700; color: var(--danger);">Compradores</h4>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Cidade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="buyers-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 7. PAINEL DE RELATÓRIOS -->
+      <div id="panel-relatorios" class="content-panel">
+        <div class="reports-grid">
+          
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-cow"></i>
+              <h4>Rebanho Ativo</h4>
+            </div>
+            <p class="report-desc">Lista completa contendo todos os animais ativos no estoque atual, incluindo brincos, raças, categorias e peso atual.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('rebanho')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-arrow-up-right"></i>
+              <h4>Animais Vendidos</h4>
+            </div>
+            <p class="report-desc">Extrato de todas as vendas realizadas. Exibe as datas de saída, o comprador, peso final e o lucro de cada animal.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('vendidos')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-arrow-down-left"></i>
+              <h4>Compras de Animais</h4>
+            </div>
+            <p class="report-desc">Relatório de compras de animais para reposição do rebanho, com dados do fornecedor, valor unitário e data de entrada.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('compras')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-baby"></i>
+              <h4>Nascimentos</h4>
+            </div>
+            <p class="report-desc">Quantitativo e listagem de nascimentos ocorridos na fazenda, identificando as matrizes, reprodutores e peso dos bezerros.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('nascimentos')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-trending-up"></i>
+              <h4>Evolução de Peso</h4>
+            </div>
+            <p class="report-desc">Comparativo de desempenho do rebanho. Mostra o peso de entrada/nascimento versus o peso atual de cada animal ativo.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('pesagem')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 8. PAINEL DE CONFIGURAÇÕES -->
+      <div id="panel-configuracoes" class="content-panel">
+        <div class="dashboard-charts" style="grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+          
+          <!-- Dados da Fazenda -->
+          <div class="chart-card">
+            <h3><i class="lucide-settings"></i> Configurações da Fazenda</h3>
+            <form id="form-configuracoes" style="display: flex; flex-direction: column; gap: 20px;">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="config-nome-fazenda">Nome da Fazenda</label>
+                  <input type="text" id="config-nome-fazenda" name="nome_fazenda" placeholder="Ex: Fazenda Bela Vista">
+                </div>
+                <div class="form-group">
+                  <label for="config-proprietario">Nome do Proprietário</label>
+                  <input type="text" id="config-proprietario" name="proprietario" placeholder="Ex: João da Silva">
+                </div>
+                <div class="form-group">
+                  <label for="config-cpf">CPF do Proprietário</label>
+                  <input type="text" id="config-cpf" name="cpf" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                  <label for="config-cnpj">CNPJ (se houver)</label>
+                  <input type="text" id="config-cnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                </div>
+                <div class="form-group">
+                  <label for="config-telefone">Telefone de Contato</label>
+                  <input type="text" id="config-telefone" name="telefone" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                  <label for="config-email">E-mail de Contato</label>
+                  <input type="email" id="config-email" name="email" placeholder="contato@fazenda.com">
+                </div>
+                <div class="form-group">
+                  <label for="config-municipio">Município</label>
+                  <input type="text" id="config-municipio" name="municipio" placeholder="Ex: Barretos">
+                </div>
+                <div class="form-group">
+                  <label for="config-estado">Estado (UF)</label>
+                  <select id="config-estado" name="estado" class="filter-select">
+                    <option value="">Selecione o estado...</option>
+                    <option value="AC">Acre</option>
+                    <option value="AL">Alagoas</option>
+                    <option value="AP">Amapá</option>
+                    <option value="AM">Amazonas</option>
+                    <option value="BA">Bahia</option>
+                    <option value="CE">Ceará</option>
+                    <option value="DF">Distrito Federal</option>
+                    <option value="ES">Espírito Santo</option>
+                    <option value="GO">Goiás</option>
+                    <option value="MA">Maranhão</option>
+                    <option value="MT">Mato Grosso</option>
+                    <option value="MS">Mato Grosso do Sul</option>
+                    <option value="MG">Minas Gerais</option>
+                    <option value="PA">Pará</option>
+                    <option value="PB">Paraíba</option>
+                    <option value="PR">Paraná</option>
+                    <option value="PE">Pernambuco</option>
+                    <option value="PI">Piauí</option>
+                    <option value="RJ">Rio de Janeiro</option>
+                    <option value="RN">Rio Grande do Norte</option>
+                    <option value="RS">Rio Grande do Sul</option>
+                    <option value="RO">Rondônia</option>
+                    <option value="RR">Roraima</option>
+                    <option value="SC">Santa Catarina</option>
+                    <option value="SP">São Paulo</option>
+                    <option value="SE">Sergipe</option>
+                    <option value="TO">Tocantins</option>
+                  </select>
+                </div>
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="align-self: flex-start; min-width: 200px;">
+                <i class="lucide-save"></i> Salvar Configurações
+              </button>
+            </form>
+          </div>
+
+          <!-- Coluna Direita (Senha e Manutenção) -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Alterar Senha -->
+            <div class="chart-card">
+              <h3><i class="lucide-key-round"></i> Alterar Senha</h3>
+              <form id="form-change-password" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="form-group">
+                  <label for="change-password-new">Nova Senha *</label>
+                  <div class="password-input-container">
+                    <input type="password" id="change-password-new" name="new_password" placeholder="Mínimo de 6 caracteres" required minlength="6">
+                    <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-new', this)">
+                      <i class="lucide-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="change-password-confirm">Confirmar Nova Senha *</label>
+                  <div class="password-input-container">
+                    <input type="password" id="change-password-confirm" name="confirm_password" placeholder="Confirme a nova senha" required minlength="6">
+                    <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-confirm', this)">
+                      <i class="lucide-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                  <i class="lucide-lock"></i> Atualizar Senha
+                </button>
+              </form>
+            </div>
+
+            <!-- Backup e Manutenção -->
+            <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
+              <h3><i class="lucide-database"></i> Manutenção</h3>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+                Gerencie a segurança dos seus dados do rebanho gerando backups manuais ou restaurando arquivos JSON anteriores.
+              </p>
+              
+              <button class="btn btn-secondary" onclick="window.app.exportBackup()" style="width: 100%;">
+                <i class="lucide-download"></i> Exportar Backup (JSON)
+              </button>
+              
+              <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="width: 100%;">
+                <i class="lucide-upload"></i> Importar Backup (JSON)
+              </button>
+              
+              <input type="file" id="backup-file-input" class="hidden" accept=".json" onchange="window.app.importBackup(event)">
+              
+              <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+              
+              <h4 style="color: var(--danger); font-size: 14px; font-weight: 700;">Área de Perigo</h4>
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                Esta operação apagará todos os dados de forma permanente e irreversível.
+              </p>
+              
+              <button class="btn btn-danger" onclick="window.app.clearAllUserData()" style="width: 100%;">
+                <i class="lucide-trash-2"></i> Limpar Todo o Sistema
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==================== MODAIS ==================== -->
+
+  <!-- MODAL: FORMULÁRIO DE ANIMAL (CADASTRO/EDIÇÃO) -->
+  <div class="modal-overlay" id="modal-animal-form">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modal-animal-title"><i class="lucide-cow"></i> Cadastrar Novo Animal</h3>
+        <button class="modal-close" onclick="window.app.closeModal('modal-animal-form')">&times;</button>
+      </div>
+      <form id="form-animal">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="animal-codigo">Código do Animal *</label>
+              <input type="text" id="animal-codigo" name="codigo" placeholder="Ex: BOI001" required>
+            </div>
+            <div class="form-group">
+              <label for="animal-brinco">Número do Brinco *</label>
+              <input type="text" id="animal-brinco" name="brinco" placeholder="Ex: 1045" required>
+            </div>
+            <div class="form-group">
+              <label for="animal-nome">Nome (Opcional)</label>
+              <input type="text" id="animal-nome" name="nome" placeholder="Ex: Estrela">
+            </div>
+            <div class="form-group">
+              <label for="animal-sexo">Sexo *</label>
+              <select id="animal-sexo" name="sexo" required>
+                <option value="M">Macho</option>
+                <option value="F">Fêmea</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="animal-raca">Raça *</label>
+              <input type="text" id="animal-raca" name="raca" value="Nelore" placeholder="Ex: Nelore" required>
+            </div>
+            <div class="form-group">
+              <label for="animal-categoria">Categoria *</label>
+              <select id="animal-categoria" name="categoria" required>
+                <option value="Bezerro">Bezerro</option>
+                <option value="Bezerra">Bezerra</option>
+                <option value="Garrote">Garrote</option>
+                <option value="Novilha">Novilha</option>
+                <option value="Boi">Boi</option>
+                <option value="Vaca">Vaca</option>
+                <option value="Reprodutor">Reprodutor</option>
+                <option value="Matriz">Matriz</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="animal-nascimento">Data de Nascimento *</label>
+              <input type="date" id="animal-nascimento" name="nascimento" required>
+            </div>
+            <div class="form-group">
+              <label for="animal-peso-atual">Peso Inicial (kg) *</label>
+              <input type="number" id="animal-peso-atual" name="peso_atual" step="0.1" placeholder="Ex: 180" required>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="animal-origem">Origem do Animal *</label>
+              <select id="animal-origem" name="origem" required>
+                <option value="">Selecione a origem...</option>
+                <option value="Nascido">Nascido na Fazenda</option>
+                <option value="Comprado">Comprado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos dinâmicos: Comprado -->
+          <div id="comprado-fields" class="conditional-fields hidden">
+            <h4 style="margin-bottom: 12px; font-weight: 700; color: var(--primary);">Dados de Compra</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="animal-fornecedor">Fornecedor *</label>
+                <select id="animal-fornecedor" name="fornecedor">
+                  <!-- Populado dinamicamente -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="animal-valor-compra">Valor de Compra (R$) *</label>
+                <input type="number" id="animal-valor-compra" name="valor_compra" step="0.01" placeholder="Ex: 2500.00">
+              </div>
+              <div class="form-group">
+                <label for="animal-compra-data">Data de Compra *</label>
+                <input type="date" id="animal-compra-data" name="data_compra">
+              </div>
+            </div>
+          </div>
+
+          <!-- Campos dinâmicos: Nascido -->
+          <div id="nascido-fields" class="conditional-fields hidden">
+            <h4 style="margin-bottom: 12px; font-weight: 700; color: var(--primary);">Dados de Genealogia</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="animal-mae">Mãe (Matriz) *</label>
+                <select id="animal-mae" name="mae_id">
+                  <!-- Populado dinamicamente -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="animal-pai">Pai (Reprodutor - Opcional)</label>
+                <select id="animal-pai" name="pai_id">
+                  <!-- Populado dinamicamente -->
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.app.closeModal('modal-animal-form')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Animal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR VENDA -->
+  <div class="modal-overlay" id="modal-sale-form">
+    <div class="modal-container">
+      <div class="modal-header" style="border-bottom-color: var(--danger-light);">
+        <h3><i class="lucide-trending-up" style="color: var(--danger);"></i> Registrar Saída (Venda)</h3>
+        <button class="modal-close" onclick="window.app.closeModal('modal-sale-form')">&times;</button>
+      </div>
+      <form id="form-sale-modal">
+        <div class="modal-body">
+          <div style="background-color: var(--danger-light); padding: 12px 18px; border-radius: var(--radius-sm); margin-bottom: 20px; border-left: 4px solid var(--danger);">
+            <p style="font-size: 13px; color: var(--danger-hover); font-weight: 600;">
+              Ao registrar a venda, o animal mudará automaticamente para o status <strong>"Vendido"</strong>, sendo retirado do controle de estoque ativo.
+            </p>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label for="sale-animal-select">Animal Selecionado *</label>
+              <select id="sale-animal-select" name="animal_id" required class="filter-select" style="width: 100%;">
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="sale-comprador">Comprador *</label>
+              <select id="sale-comprador" name="comprador" required>
+                <!-- Populado dinamicamente -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sale-data">Data de Venda *</label>
+              <input type="date" id="sale-data" name="data" required>
+            </div>
+            <div class="form-group">
+              <label for="sale-peso-venda">Peso de Venda (kg) *</label>
+              <input type="number" id="sale-peso-venda" name="peso_venda" step="0.1" placeholder="Ex: 520" required>
+            </div>
+            <div class="form-group">
+              <label for="sale-valor">Valor de Venda (R$) *</label>
+              <input type="number" id="sale-valor" name="valor" step="0.01" placeholder="Ex: 4200.00" required>
+            </div>
+            <div class="form-group">
+              <label for="sale-desconto">Desconto (R$)</label>
+              <input type="number" id="sale-desconto" name="desconto" step="0.01" placeholder="Ex: 100.00" value="0.00">
+            </div>
+            <div class="form-group">
+              <label for="sale-forma-pagamento">Forma de Pagamento *</label>
+              <select id="sale-forma-pagamento" name="forma_pagamento" required>
+                <option value="">Selecione...</option>
+                <option value="Pix">Pix</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="Transferência Bancária">Transferência Bancária</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.app.closeModal('modal-sale-form')">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar Venda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PERFIL DO ANIMAL (DETALHE COMPLETO E PREMIUM) -->
+  <div class="modal-overlay" id="modal-animal-profile">
+    <div class="modal-container" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3 id="profile-code-title">BOI001 - Estrela</h3>
+        <button class="modal-close" onclick="window.app.closeModal('modal-animal-profile')">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Cabeçalho de Perfil -->
+        <div class="profile-header">
+          <div class="profile-avatar" id="profile-avatar-letters">BO</div>
+          <div class="profile-title">
+            <h3 id="profile-full-name">Mimosa Nelore</h3>
+            <div class="profile-badges" id="profile-badges-container">
+              <!-- Injetado dinamicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Estatísticas GMD e Peso -->
+        <div class="profile-stats">
+          <div class="stat-item">
+            <div class="stat-label">Peso Atual</div>
+            <div class="stat-value" id="prof-stat-peso">- kg</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Ganho Total</div>
+            <div class="stat-value" id="prof-stat-ganho">- kg</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Ganho Médio Diário</div>
+            <div class="stat-value" id="prof-stat-gmd">- kg/dia</div>
+          </div>
+        </div>
+
+        <!-- Conteúdo do Perfil -->
+        <div class="animal-profile-content">
+          
+          <!-- Lista de Info Fichária -->
+          <div>
+            <h4 style="margin-bottom: 12px; font-weight: 700; color: var(--primary);">Ficha Técnica</h4>
+            <div class="animal-info-list" id="profile-info-details">
+              <!-- Injetado dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Histórico e Gráficos -->
+          <div>
+            <h4 style="margin-bottom: 12px; font-weight: 700; color: var(--primary);">Histórico de Pesagens</h4>
+            
+            <div id="profile-chart-container" class="chart-container" style="height: 150px; margin-bottom: 16px;">
+              <canvas id="chartProfileWeight"></canvas>
+            </div>
+
+            <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+              <table class="boi-table" style="font-size: 13px;">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Peso</th>
+                    <th>Ganho</th>
+                  </tr>
+                </thead>
+                <tbody id="profile-weights-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="window.app.closeModal('modal-animal-profile')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FORMULÁRIO DE CLIENTE (CADASTRO/EDIÇÃO) -->
+  <div class="modal-overlay" id="modal-client-form">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modal-client-title">Novo Cliente / Fornecedor</h3>
+        <button class="modal-close" onclick="window.app.closeModal('modal-client-form')">&times;</button>
+      </div>
+      <form id="form-client-modal">
+        <!-- O formulário de clientes usa os mesmos campos da barra lateral da tela de Clientes -->
+        <!-- Esse modal é aberto ao editar um cliente -->
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label for="client-modal-nome">Nome do Cliente *</label>
+              <input type="text" id="client-modal-nome" name="nome" required>
+            </div>
+            <div class="form-group">
+              <label for="client-modal-telefone">Telefone *</label>
+              <input type="text" id="client-modal-telefone" name="telefone" required>
+            </div>
+            <div class="form-group">
+              <label for="client-modal-cidade">Cidade *</label>
+              <input type="text" id="client-modal-cidade" name="cidade" required>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="client-modal-tipo">Tipo *</label>
+              <select id="client-modal-tipo" name="tipo" required>
+                <option value="Fornecedor">Fornecedor (Compra)</option>
+                <option value="Comprador">Comprador (Venda)</option>
+                <option value="Ambos">Ambos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.app.closeModal('modal-client-form')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONTAINER DE TOASTS -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- SCRIPTS DO BANCO, UI E CONTROLLER -->
+  <script src="db.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Registro do Service Worker para PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+          .catch(err => console.error('Erro ao registrar Service Worker:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>
