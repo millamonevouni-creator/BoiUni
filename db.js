@@ -7,7 +7,9 @@ const DB_KEYS = {
   VENDAS: 'boiuni_vendas',
   NASCIMENTOS: 'boiuni_nascimentos',
   CLIENTES: 'boiuni_clientes',
-  CONFIGURACOES: 'boiuni_configuracoes'
+  CONFIGURACOES: 'boiuni_configuracoes',
+  DESPESAS: 'boiuni_despesas',
+  CUSTOS_FAZENDA: 'boiuni_custos_fazenda'
 };
 
 // Configuração Supabase
@@ -103,6 +105,12 @@ class LocalDB {
     if (!localStorage.getItem(DB_KEYS.CONFIGURACOES)) {
       localStorage.setItem(DB_KEYS.CONFIGURACOES, JSON.stringify({}));
     }
+    if (!localStorage.getItem(DB_KEYS.DESPESAS)) {
+      localStorage.setItem(DB_KEYS.DESPESAS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(DB_KEYS.CUSTOS_FAZENDA)) {
+      localStorage.setItem(DB_KEYS.CUSTOS_FAZENDA, JSON.stringify([]));
+    }
 
     // Sincroniza em segundo plano se o usuário já estiver logado
     this.getCurrentSession().then(session => {
@@ -169,7 +177,9 @@ class LocalDB {
     if (!user) return;
     
     const uId = user.id;
-    // Exclui primeiro as tabelas filhas (transações, pesagens, nascimentos)
+    // Exclui primeiro as tabelas filhas (transações, pesagens, nascimentos, despesas, custos_fazenda)
+    await supabaseClient.from('custos_fazenda').delete().eq('user_id', uId);
+    await supabaseClient.from('despesas').delete().eq('user_id', uId);
     await supabaseClient.from('nascimentos').delete().eq('user_id', uId);
     await supabaseClient.from('vendas').delete().eq('user_id', uId);
     await supabaseClient.from('compras').delete().eq('user_id', uId);
@@ -207,14 +217,16 @@ class LocalDB {
     console.log("Sincronizando rebanho do Supabase...");
     try {
       // Busca tabelas do usuário autenticado (RLS garante o isolamento)
-      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig] = await Promise.all([
+      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda] = await Promise.all([
         supabaseClient.from('clientes').select('*'),
         supabaseClient.from('animais').select('*').order('id', { ascending: true }),
         supabaseClient.from('pesagens').select('*'),
         supabaseClient.from('compras').select('*'),
         supabaseClient.from('vendas').select('*'),
         supabaseClient.from('nascimentos').select('*'),
-        supabaseClient.from('configuracoes').select('*').maybeSingle()
+        supabaseClient.from('configuracoes').select('*').maybeSingle(),
+        supabaseClient.from('despesas').select('*'),
+        supabaseClient.from('custos_fazenda').select('*')
       ]);
 
       if (rClientes.error) throw rClientes.error;
@@ -224,6 +236,8 @@ class LocalDB {
       if (rVendas.error) throw rVendas.error;
       if (rNascimentos.error) throw rNascimentos.error;
       if (rConfig.error) throw rConfig.error;
+      if (rDespesas.error) throw rDespesas.error;
+      if (rCustosFazenda.error) throw rCustosFazenda.error;
 
       // Salva no localStorage local
       this._set(DB_KEYS.CLIENTES, rClientes.data);
@@ -233,6 +247,8 @@ class LocalDB {
       this._set(DB_KEYS.VENDAS, rVendas.data);
       this._set(DB_KEYS.NASCIMENTOS, rNascimentos.data);
       this._set(DB_KEYS.CONFIGURACOES, rConfig.data || {});
+      this._set(DB_KEYS.DESPESAS, rDespesas.data);
+      this._set(DB_KEYS.CUSTOS_FAZENDA, rCustosFazenda.data);
 
       // Se todas as tabelas vieram vazias, apenas registra no console
       if (rAnimais.data.length === 0 && rClientes.data.length === 0) {
@@ -458,7 +474,8 @@ class LocalDB {
       id: this._nextId(DB_KEYS.COMPRAS),
       animal_id: parseInt(purchase.animal_id),
       fornecedor: purchase.fornecedor && !isNaN(parseInt(purchase.fornecedor)) ? parseInt(purchase.fornecedor) : null,
-      valor: parseFloat(purchase.valor) || 0
+      valor: parseFloat(purchase.valor) || 0,
+      compra_grupo_id: purchase.compra_grupo_id ? parseInt(purchase.compra_grupo_id) : null
     };
     data.push(newPurchase);
     this._set(DB_KEYS.COMPRAS, data);
@@ -469,7 +486,8 @@ class LocalDB {
         animal_id: newPurchase.animal_id,
         fornecedor: newPurchase.fornecedor,
         valor: newPurchase.valor,
-        data: newPurchase.data
+        data: newPurchase.data,
+        compra_grupo_id: newPurchase.compra_grupo_id
       }).then(({ error }) => {
         if (error) console.error("Erro ao salvar compra no Supabase:", error);
       });
@@ -493,7 +511,8 @@ class LocalDB {
       valor: parseFloat(sale.valor) || 0,
       peso_venda: parseFloat(sale.peso_venda) || 0,
       desconto: parseFloat(sale.desconto) || 0,
-      forma_pagamento: sale.forma_pagamento || 'Outro'
+      forma_pagamento: sale.forma_pagamento || 'Outro',
+      venda_grupo_id: sale.venda_grupo_id ? parseInt(sale.venda_grupo_id) : null
     };
     data.push(newSale);
     this._set(DB_KEYS.VENDAS, data);
@@ -521,7 +540,8 @@ class LocalDB {
         peso_venda: newSale.peso_venda,
         data: newSale.data,
         desconto: newSale.desconto,
-        forma_pagamento: newSale.forma_pagamento
+        forma_pagamento: newSale.forma_pagamento,
+        venda_grupo_id: newSale.venda_grupo_id
       }).then(({ error }) => {
         if (error) console.error("Erro ao salvar venda no Supabase:", error);
       });
@@ -535,6 +555,72 @@ class LocalDB {
     }
 
     return newSale;
+  }
+
+  deleteSale(id) {
+    const sale = this.getSales().find(s => s.id === parseInt(id));
+    if (!sale) return;
+
+    const salesToDelete = sale.venda_grupo_id
+      ? this.getSales().filter(s => s.venda_grupo_id === sale.venda_grupo_id)
+      : [sale];
+
+    const animalIds = salesToDelete.map(s => s.animal_id);
+    const saleIds = salesToDelete.map(s => s.id);
+
+    let sales = this.getSales();
+    sales = sales.filter(s => !saleIds.includes(s.id));
+    this._set(DB_KEYS.VENDAS, sales);
+
+    let weights = this.getWeights();
+    salesToDelete.forEach(s => {
+      const wIdx = weights.findIndex(w => w.animal_id === s.animal_id && w.data === s.data && w.peso === s.peso_venda);
+      if (wIdx !== -1) {
+        const weightId = weights[wIdx].id;
+        weights.splice(wIdx, 1);
+        if (supabaseClient) {
+          supabaseClient.from('pesagens').delete().eq('id', weightId)
+            .then(({ error }) => {
+              if (error) console.error("Erro ao deletar pesagem da venda no Supabase:", error);
+            });
+        }
+      }
+    });
+    this._set(DB_KEYS.PESAGENS, weights);
+
+    let animals = this.getAnimals();
+    animals = animals.map(a => {
+      if (animalIds.includes(a.id)) {
+        a.status = 'Ativo';
+        const animalWeights = weights.filter(w => w.animal_id === a.id);
+        if (animalWeights.length > 0) {
+          const sortedW = [...animalWeights].sort((x, y) => new Date(y.data) - new Date(x.data) || y.id - x.id);
+          a.peso_atual = sortedW[0].peso;
+        } else {
+          a.peso_atual = 0;
+        }
+
+        if (supabaseClient) {
+          supabaseClient.from('animais').update({
+            status: 'Ativo',
+            peso_atual: a.peso_atual
+          }).eq('id', a.id).then(({ error }) => {
+            if (error) console.error("Erro ao atualizar status/peso do animal no Supabase:", error);
+          });
+        }
+      }
+      return a;
+    });
+    this._set(DB_KEYS.ANIMAIIS, animals);
+
+    if (supabaseClient) {
+      salesToDelete.forEach(s => {
+        supabaseClient.from('vendas').delete().eq('id', s.id)
+          .then(({ error }) => {
+            if (error) console.error("Erro ao deletar venda no Supabase:", error);
+          });
+      });
+    }
   }
 
   // --- NASCIMENTOS ---
@@ -625,6 +711,99 @@ class LocalDB {
     }
   }
 
+  // --- DESPESAS / MANEJO ---
+  getExpenses() {
+    return this._get(DB_KEYS.DESPESAS) || [];
+  }
+
+  getAnimalExpenses(animalId) {
+    return this.getExpenses().filter(e => e.animal_id === parseInt(animalId));
+  }
+
+  addExpense(expense) {
+    const data = this.getExpenses();
+    const newExpense = {
+      ...expense,
+      id: this._nextId(DB_KEYS.DESPESAS),
+      animal_id: parseInt(expense.animal_id),
+      valor: parseFloat(expense.valor) || 0
+    };
+    data.push(newExpense);
+    this._set(DB_KEYS.DESPESAS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('despesas').insert({
+        id: newExpense.id,
+        animal_id: newExpense.animal_id,
+        tipo: newExpense.tipo,
+        descricao: newExpense.descricao,
+        valor: newExpense.valor,
+        data: newExpense.data
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar despesa no Supabase:", error);
+      });
+    }
+
+    return newExpense;
+  }
+
+  deleteExpense(id) {
+    let data = this.getExpenses();
+    data = data.filter(e => e.id !== parseInt(id));
+    this._set(DB_KEYS.DESPESAS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('despesas').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar despesa no Supabase:", error);
+        });
+    }
+  }
+
+  // --- CUSTOS DA FAZENDA ---
+  getPropertyCosts() {
+    return this._get(DB_KEYS.CUSTOS_FAZENDA) || [];
+  }
+
+  addPropertyCost(cost) {
+    const data = this.getPropertyCosts();
+    const newCost = {
+      ...cost,
+      id: this._nextId(DB_KEYS.CUSTOS_FAZENDA),
+      valor: parseFloat(cost.valor) || 0
+    };
+    data.push(newCost);
+    this._set(DB_KEYS.CUSTOS_FAZENDA, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('custos_fazenda').insert({
+        id: newCost.id,
+        categoria: newCost.categoria,
+        descricao: newCost.descricao,
+        valor: newCost.valor,
+        data: newCost.data,
+        periodicidade: newCost.periodicidade
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar custo da fazenda no Supabase:", error);
+      });
+    }
+
+    return newCost;
+  }
+
+  deletePropertyCost(id) {
+    let data = this.getPropertyCosts();
+    data = data.filter(c => c.id !== parseInt(id));
+    this._set(DB_KEYS.CUSTOS_FAZENDA, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('custos_fazenda').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar custo da fazenda no Supabase:", error);
+        });
+    }
+  }
+
   // --- CONFIGURACOES ---
   getConfiguracoes() {
     const data = localStorage.getItem(DB_KEYS.CONFIGURACOES);
@@ -666,7 +845,9 @@ class LocalDB {
       vendas: this.getSales(),
       nascimentos: this.getBirths(),
       clientes: this.getClients(),
-      configuracoes: this.getConfiguracoes()
+      configuracoes: this.getConfiguracoes(),
+      despesas: this.getExpenses(),
+      custos_fazenda: this.getPropertyCosts()
     };
     return JSON.stringify(backup, null, 2);
   }
@@ -681,6 +862,8 @@ class LocalDB {
       if (data.nascimentos && Array.isArray(data.nascimentos)) this._set(DB_KEYS.NASCIMENTOS, data.nascimentos);
       if (data.clientes && Array.isArray(data.clientes)) this._set(DB_KEYS.CLIENTES, data.clientes);
       if (data.configuracoes) this._set(DB_KEYS.CONFIGURACOES, data.configuracoes);
+      if (data.despesas && Array.isArray(data.despesas)) this._set(DB_KEYS.DESPESAS, data.despesas);
+      if (data.custos_fazenda && Array.isArray(data.custos_fazenda)) this._set(DB_KEYS.CUSTOS_FAZENDA, data.custos_fazenda);
       
       if (supabaseClient) {
         this.pushAllToSupabase(data);
@@ -702,12 +885,14 @@ class LocalDB {
 
       // Limpa dados anteriores do usuário antes de enviar
       await Promise.all([
+        supabaseClient.from('despesas').delete().neq('id', 0),
         supabaseClient.from('nascimentos').delete().neq('id', 0),
         supabaseClient.from('vendas').delete().neq('id', 0),
         supabaseClient.from('compras').delete().neq('id', 0),
         supabaseClient.from('pesagens').delete().neq('id', 0),
         supabaseClient.from('animais').delete().neq('id', 0),
-        supabaseClient.from('clientes').delete().neq('id', 0)
+        supabaseClient.from('clientes').delete().neq('id', 0),
+        supabaseClient.from('custos_fazenda').delete().neq('id', 0)
       ]);
 
       // Insere na ordem certa com user_id explícito se necessário (ou defaults)
@@ -744,6 +929,12 @@ class LocalDB {
       }
       if (data.nascimentos && data.nascimentos.length > 0) {
         await supabaseClient.from('nascimentos').insert(data.nascimentos.map(b => ({ ...b, user_id: uId })));
+      }
+      if (data.despesas && data.despesas.length > 0) {
+        await supabaseClient.from('despesas').insert(data.despesas.map(d => ({ ...d, user_id: uId })));
+      }
+      if (data.custos_fazenda && data.custos_fazenda.length > 0) {
+        await supabaseClient.from('custos_fazenda').insert(data.custos_fazenda.map(cf => ({ ...cf, user_id: uId })));
       }
 
       console.log("Semente de dados gravada com sucesso no Supabase.");

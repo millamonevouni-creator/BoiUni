@@ -2827,3 +2827,9 @@ table.boi-table tbody tr:hover {
   font-size: 13px;
   color: rgba(255,255,255,0.5);
 }
+
+@media (max-width: 768px) {
+  .reports-financial-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

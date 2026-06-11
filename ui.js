@@ -4,7 +4,8 @@
 const uiCharts = {
   dashCategory: null,
   dashFinancial: null,
-  animalWeight: null
+  animalWeight: null,
+  propertyCostsCategory: null
 };
 
 class UserInterface {
@@ -88,12 +89,13 @@ class UserInterface {
     const monthlyPurchases = purchases.filter(p => p.data.startsWith(currentYearMonth)).length;
     const monthlySales = sales.filter(s => s.data.startsWith(currentYearMonth)).length;
 
-    // Lucro Estimado: Vendas - Compras dos animais vendidos
+    // Lucro Estimado Real: (Vendas - Descontos) - Compras dos animais vendidos
     let totalLucro = 0;
     sales.forEach(sale => {
       const p = purchases.find(pur => pur.animal_id === sale.animal_id);
       const purchaseVal = p ? p.valor : 0;
-      totalLucro += (sale.valor - purchaseVal);
+      const discountVal = sale.desconto ? parseFloat(sale.desconto) : 0;
+      totalLucro += (sale.valor - discountVal) - purchaseVal;
     });
 
     // Atualizar UI dos cards
@@ -325,6 +327,19 @@ class UserInterface {
       );
     }
 
+    const purchases = window.db.getPurchases();
+    const lotAnimalIds = new Set(purchases.filter(p => p.compra_grupo_id).map(p => p.animal_id));
+
+    // Filtro de Lote vs Individual
+    const filterLote = document.getElementById('animal-filter-lote')?.value || 'Todos';
+    if (filterLote !== 'Todos') {
+      if (filterLote === 'Lote') {
+        list = list.filter(a => lotAnimalIds.has(a.id));
+      } else if (filterLote === 'Individual') {
+        list = list.filter(a => !lotAnimalIds.has(a.id));
+      }
+    }
+
     if (list.length === 0) {
       listBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 40px 0;">Nenhum animal encontrado com as especificações atuais.</td></tr>`;
       return;
@@ -332,13 +347,17 @@ class UserInterface {
 
     listBody.innerHTML = list.map(a => {
       const isSold = a.status === 'Vendido';
+      const isLot = lotAnimalIds.has(a.id);
+      const lotBadge = isLot 
+        ? `<span class="badge badge-info" style="font-size: 10px; margin-left: 6px; padding: 2px 6px;">Lote</span>` 
+        : `<span class="badge badge-neutral" style="font-size: 10px; margin-left: 6px; padding: 2px 6px;">Individual</span>`;
       return `
         <tr>
           <td>
             <div class="animal-meta">
               <div class="animal-avatar">${a.codigo.substring(0, 2)}</div>
               <div class="animal-details">
-                <span class="animal-code">${a.codigo}</span>
+                <span class="animal-code" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">${a.codigo}${lotBadge}</span>
                 <span class="animal-name">${a.nome || 'Sem Nome'}</span>
               </div>
             </div>
@@ -610,64 +629,246 @@ class UserInterface {
     }
 
     // Render Compras
+    const groupedPurchases = [];
+    const purchaseGroups = {};
+
+    purchases.forEach(p => {
+      if (p.compra_grupo_id) {
+        if (!purchaseGroups[p.compra_grupo_id]) {
+          purchaseGroups[p.compra_grupo_id] = [];
+        }
+        purchaseGroups[p.compra_grupo_id].push(p);
+      } else {
+        groupedPurchases.push({
+          isGroup: false,
+          id: p.id,
+          data: p.data,
+          valor: p.valor,
+          fornecedor: p.fornecedor,
+          animal_id: p.animal_id,
+          rawRecord: p
+        });
+      }
+    });
+
+    Object.keys(purchaseGroups).forEach(groupId => {
+      const groupItems = purchaseGroups[groupId];
+      const firstItem = groupItems[0];
+      const totalValue = groupItems.reduce((sum, item) => sum + item.valor, 0);
+      const animalIds = groupItems.map(item => item.animal_id);
+      
+      groupedPurchases.push({
+        isGroup: true,
+        groupId: groupId,
+        id: parseInt(groupId),
+        data: firstItem.data,
+        valor: totalValue,
+        fornecedor: firstItem.fornecedor,
+        animalIds: animalIds,
+        itemsCount: groupItems.length,
+        rawRecords: groupItems
+      });
+    });
+
+    groupedPurchases.sort((a, b) => {
+      const dateA = new Date(a.data);
+      const dateB = new Date(b.data);
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return b.id - a.id;
+    });
+
     if (buyBody) {
-      if (purchases.length === 0) {
+      if (groupedPurchases.length === 0) {
         buyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px 0;">Nenhuma compra registrada.</td></tr>`;
       } else {
-        buyBody.innerHTML = purchases.map(p => {
-          const animal = animals.find(a => a.id === p.animal_id) || { brinco: '-', codigo: '-' };
+        buyBody.innerHTML = groupedPurchases.map(p => {
           const supplier = clients.find(c => c.id === p.fornecedor) || { nome: '-' };
-          return `
-            <tr>
-              <td>${this.formatDate(p.data)}</td>
-              <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
-              <td>${supplier.nome}</td>
-              <td style="font-weight: 600;">${this.formatCurrency(p.valor)}</td>
-              <td>
-                <button class="action-btn" onclick="window.app.viewAnimalProfile(${p.animal_id})">
-                  <i class="lucide-eye"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).reverse().join('');
+          
+          if (!p.isGroup) {
+            const animal = animals.find(a => a.id === p.animal_id) || { brinco: '-', codigo: '-' };
+            return `
+              <tr>
+                <td>${this.formatDate(p.data)}</td>
+                <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
+                <td>${supplier.nome}</td>
+                <td style="font-weight: 600;">${this.formatCurrency(p.valor)}</td>
+                <td>
+                  <button class="action-btn" title="Ver Perfil" onclick="window.app.viewAnimalProfile(${p.animal_id})">
+                    <i class="lucide-eye"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+          } else {
+            const animalList = p.animalIds.map(id => animals.find(a => a.id === id)).filter(Boolean);
+            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${a.brinco}</span>`).join(', ');
+
+            return `
+              <tr>
+                <td>${this.formatDate(p.data)}</td>
+                <td>
+                  <strong>Lote de ${p.itemsCount} Animais</strong>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    ${earringsText}
+                  </div>
+                </td>
+                <td>${supplier.nome}</td>
+                <td style="font-weight: 600;">${this.formatCurrency(p.valor)}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="action-btn" title="Ver Animais do Lote" onclick="window.app.viewPurchaseLotDetails(${p.groupId})">
+                      <i class="lucide-eye"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }
+        }).join('');
       }
     }
 
     // Render Vendas
+    const groupedSales = [];
+    const saleGroups = {};
+
+    sales.forEach(s => {
+      if (s.venda_grupo_id) {
+        if (!saleGroups[s.venda_grupo_id]) {
+          saleGroups[s.venda_grupo_id] = [];
+        }
+        saleGroups[s.venda_grupo_id].push(s);
+      } else {
+        groupedSales.push({
+          isGroup: false,
+          id: s.id,
+          data: s.data,
+          valor: s.valor,
+          desconto: s.desconto,
+          peso_venda: s.peso_venda,
+          forma_pagamento: s.forma_pagamento,
+          comprador: s.comprador,
+          animal_id: s.animal_id,
+          rawRecord: s
+        });
+      }
+    });
+
+    Object.keys(saleGroups).forEach(groupId => {
+      const groupItems = saleGroups[groupId];
+      const firstItem = groupItems[0];
+      const totalValue = groupItems.reduce((sum, item) => sum + item.valor, 0);
+      const totalDiscount = groupItems.reduce((sum, item) => sum + (parseFloat(item.desconto) || 0), 0);
+      const totalPeso = groupItems.reduce((sum, item) => sum + (parseFloat(item.peso_venda) || 0), 0);
+      const animalIds = groupItems.map(item => item.animal_id);
+      
+      groupedSales.push({
+        isGroup: true,
+        groupId: groupId,
+        id: parseInt(groupId),
+        data: firstItem.data,
+        valor: totalValue,
+        desconto: totalDiscount,
+        peso_venda: totalPeso,
+        forma_pagamento: firstItem.forma_pagamento,
+        comprador: firstItem.comprador,
+        animalIds: animalIds,
+        itemsCount: groupItems.length,
+        rawRecords: groupItems
+      });
+    });
+
+    groupedSales.sort((a, b) => {
+      const dateA = new Date(a.data);
+      const dateB = new Date(b.data);
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return b.id - a.id;
+    });
+
     if (sellBody) {
-      if (sales.length === 0) {
+      if (groupedSales.length === 0) {
         sellBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px 0;">Nenhuma venda registrada.</td></tr>`;
       } else {
-        sellBody.innerHTML = sales.map(s => {
-          const animal = animals.find(a => a.id === s.animal_id) || { brinco: '-', codigo: '-' };
+        sellBody.innerHTML = groupedSales.map(s => {
           const buyer = clients.find(c => c.id === s.comprador) || { nome: '-' };
-          const p = purchases.find(pur => pur.animal_id === s.animal_id);
-          const purchaseVal = p ? p.valor : 0;
-          const lucro = s.valor - purchaseVal;
-          const lucroClass = lucro >= 0 ? 'gmd-positive' : 'gmd-negative';
-          const discountVal = s.desconto ? parseFloat(s.desconto) : 0;
+          
+          if (!s.isGroup) {
+            const animal = animals.find(a => a.id === s.animal_id) || { brinco: '-', codigo: '-' };
+            const p = purchases.find(pur => pur.animal_id === s.animal_id);
+            const purchaseVal = p ? p.valor : 0;
+            const discountVal = s.desconto ? parseFloat(s.desconto) : 0;
+            
+            const lucro = (s.valor - discountVal) - purchaseVal;
+            const lucroClass = lucro >= 0 ? 'gmd-positive' : 'gmd-negative';
 
-          return `
-            <tr>
-              <td>${this.formatDate(s.data)}</td>
-              <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
-              <td>${buyer.nome}</td>
-              <td>${s.peso_venda} kg</td>
-              <td style="font-weight: 600; color: var(--primary);">${this.formatCurrency(s.valor)}</td>
-              <td>${discountVal > 0 ? this.formatCurrency(discountVal) : '-'}</td>
-              <td><span class="badge badge-neutral">${s.forma_pagamento || '-'}</span></td>
-              <td class="${lucroClass}" style="font-weight: 700;">${this.formatCurrency(lucro)}</td>
-              <td>
-                <div class="table-actions">
-                  <button class="action-btn" title="Emitir Recibo (PDF)" onclick="window.app.printReceipt(${s.id})">
-                    <i class="lucide-file-text"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).reverse().join('');
+            return `
+              <tr>
+                <td>${this.formatDate(s.data)}</td>
+                <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
+                <td>${buyer.nome}</td>
+                <td>${s.peso_venda} kg</td>
+                <td style="color: var(--text-muted);">${this.formatCurrency(purchaseVal)}</td>
+                <td style="font-weight: 600; color: var(--primary);">${this.formatCurrency(s.valor)}</td>
+                <td>${discountVal > 0 ? this.formatCurrency(discountVal) : '-'}</td>
+                <td><span class="badge badge-neutral">${s.forma_pagamento || '-'}</span></td>
+                <td class="${lucroClass}" style="font-weight: 700;">${this.formatCurrency(lucro)}</td>
+                <td>
+                   <div class="table-actions">
+                    <button class="action-btn" title="Emitir Recibo (PDF)" onclick="window.app.printReceipt(${s.id})">
+                      <i class="lucide-file-text"></i>
+                    </button>
+                    <button class="action-btn btn-delete" title="Excluir Venda (Estornar Animal)" onclick="window.app.deleteSale(${s.id})">
+                      <i class="lucide-trash-2"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          } else {
+            let totalLucro = 0;
+            let totalPurchaseVal = 0;
+            s.rawRecords.forEach(sr => {
+              const p = purchases.find(pur => pur.animal_id === sr.animal_id);
+              const purchaseVal = p ? p.valor : 0;
+              const discountVal = sr.desconto ? parseFloat(sr.desconto) : 0;
+              totalLucro += (sr.valor - discountVal) - purchaseVal;
+              totalPurchaseVal += purchaseVal;
+            });
+            const lucroClass = totalLucro >= 0 ? 'gmd-positive' : 'gmd-negative';
+
+            const animalList = s.animalIds.map(id => animals.find(a => a.id === id)).filter(Boolean);
+            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${a.brinco}</span>`).join(', ');
+
+            return `
+              <tr>
+                <td>${this.formatDate(s.data)}</td>
+                <td>
+                  <strong>Lote de ${s.itemsCount} Animais</strong>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    ${earringsText}
+                  </div>
+                </td>
+                <td>${buyer.nome}</td>
+                <td>${s.peso_venda.toFixed(1)} kg</td>
+                <td style="color: var(--text-muted);">${this.formatCurrency(totalPurchaseVal)}</td>
+                <td style="font-weight: 600; color: var(--primary);">${this.formatCurrency(s.valor)}</td>
+                <td>${s.desconto > 0 ? this.formatCurrency(s.desconto) : '-'}</td>
+                <td><span class="badge badge-neutral">${s.forma_pagamento || '-'}</span></td>
+                <td class="${lucroClass}" style="font-weight: 700;">${this.formatCurrency(totalLucro)}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="action-btn" title="Emitir Recibo Consolidado (PDF)" onclick="window.app.printReceipt(${s.rawRecords[0].id})">
+                      <i class="lucide-file-text"></i>
+                    </button>
+                    <button class="action-btn btn-delete" title="Excluir Lote de Vendas (Estornar Animais)" onclick="window.app.deleteSale(${s.rawRecords[0].id})">
+                      <i class="lucide-trash-2"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }
+        }).join('');
       }
     }
 
@@ -818,7 +1019,7 @@ class UserInterface {
     // Tabela de histórico de pesagem do perfil
     const tableBody = document.getElementById('profile-weights-tbody');
     if (weights.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Sem pesagens.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px 0;">Sem pesagens.</td></tr>`;
     } else {
       tableBody.innerHTML = weights.map((w, index) => {
         let diff = '-';
@@ -843,6 +1044,10 @@ class UserInterface {
       this.renderProfileWeightChart(weights);
     } else {
       chartDiv.classList.add('hidden');
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
     }
 
     // Abre o Modal
@@ -890,8 +1095,321 @@ class UserInterface {
 
   // --- RENDERIZADOR DE RELATÓRIOS ---
   renderReportsView() {
-    // A tela de relatórios apenas exibe os cartões com as ações para cada tipo.
-    // As ações chamam funções específicas para abrir janelas de impressão ou modais de listagem.
+    const purchases = window.db.getPurchases();
+    const sales = window.db.getSales();
+    const costs = window.db.getPropertyCosts();
+    const animals = window.db.getAnimals();
+
+    const setElText = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    // 1. Cálculos DRE
+    const fatBruto = sales.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
+    const descontos = sales.reduce((sum, s) => sum + (parseFloat(s.desconto) || 0), 0);
+    const recLiquida = fatBruto - descontos;
+
+    let cav = 0;
+    sales.forEach(s => {
+      const p = purchases.find(pur => pur.animal_id === s.animal_id);
+      if (p) cav += (parseFloat(p.valor) || 0);
+    });
+
+    const lucroBruto = recLiquida - cav;
+
+    // Despesas operacionais por categoria
+    const categoriesSum = {
+      'Funcionários': 0,
+      'Alimentação Geral': 0,
+      'Manutenção': 0,
+      'Combustível': 0,
+      'Energia/Água': 0,
+      'Impostos/Taxas': 0,
+      'Vacinas/Medicamentos Geral': 0,
+      'Outros': 0
+    };
+
+    costs.forEach(c => {
+      const cat = c.categoria;
+      if (categoriesSum[cat] !== undefined) {
+        categoriesSum[cat] += (parseFloat(c.valor) || 0);
+      } else {
+        categoriesSum['Outros'] += (parseFloat(c.valor) || 0);
+      }
+    });
+
+    const despesasTotal = Object.values(categoriesSum).reduce((sum, val) => sum + val, 0);
+    const resultadoLiquido = lucroBruto - despesasTotal;
+
+    // Atualiza cards financeiros
+    setElText('rep-faturamento', this.formatCurrency(fatBruto));
+    setElText('rep-custo-animais', this.formatCurrency(cav));
+    setElText('rep-despesas-gerais', this.formatCurrency(despesasTotal));
+    setElText('rep-resultado-liquido', this.formatCurrency(resultadoLiquido));
+
+    // Cor do card de resultado líquido
+    const rCard = document.getElementById('rep-lucro-card');
+    const rIcon = document.getElementById('rep-lucro-icon');
+    if (rCard && rIcon) {
+      if (resultadoLiquido >= 0) {
+        rCard.className = 'stat-card';
+        rCard.style.borderLeft = '4px solid var(--success)';
+        rIcon.style.backgroundColor = 'var(--success-light)';
+        rIcon.style.color = 'var(--success)';
+      } else {
+        rCard.className = 'stat-card';
+        rCard.style.borderLeft = '4px solid var(--danger)';
+        rIcon.style.backgroundColor = 'var(--danger-light)';
+        rIcon.style.color = 'var(--danger)';
+      }
+    }
+
+    // Preenche DRE na tabela
+    setElText('dre-fat-bruto', this.formatCurrency(fatBruto));
+    setElText('dre-descontos', descontos > 0 ? `-${this.formatCurrency(descontos)}` : 'R$ 0,00');
+    setElText('dre-rec-liquida', this.formatCurrency(recLiquida));
+    setElText('dre-cav', cav > 0 ? `-${this.formatCurrency(cav)}` : 'R$ 0,00');
+    setElText('dre-lucro-bruto', this.formatCurrency(lucroBruto));
+    setElText('dre-despesas-total', despesasTotal > 0 ? `-${this.formatCurrency(despesasTotal)}` : 'R$ 0,00');
+
+    setElText('dre-cat-funcionarios', this.formatCurrency(categoriesSum['Funcionários']));
+    setElText('dre-cat-alimentacao', this.formatCurrency(categoriesSum['Alimentação Geral']));
+    setElText('dre-cat-manutencao', this.formatCurrency(categoriesSum['Manutenção']));
+    setElText('dre-cat-combustivel', this.formatCurrency(categoriesSum['Combustível']));
+    setElText('dre-cat-energia', this.formatCurrency(categoriesSum['Energia/Água']));
+    setElText('dre-cat-impostos', this.formatCurrency(categoriesSum['Impostos/Taxas']));
+    setElText('dre-cat-medicamentos', this.formatCurrency(categoriesSum['Vacinas/Medicamentos Geral']));
+    setElText('dre-cat-outros', this.formatCurrency(categoriesSum['Outros']));
+
+    const resFinalCell = document.getElementById('dre-resultado-final');
+    if (resFinalCell) {
+      resFinalCell.textContent = this.formatCurrency(resultadoLiquido);
+      resFinalCell.style.color = resultadoLiquido >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    // 2. Cálculos Zootécnicos (Métricas de Compra)
+    const compCount = purchases.length;
+    let sumWeightCompra = 0;
+    let weightCompraCount = 0;
+    let sumValCompra = 0;
+
+    purchases.forEach(p => {
+      sumValCompra += p.valor;
+      const weights = window.db.getAnimalWeights(p.animal_id);
+      if (weights.length > 0) {
+        const sorted = [...weights].sort((a, b) => new Date(a.data) - new Date(b.data));
+        sumWeightCompra += sorted[0].peso;
+        weightCompraCount++;
+      }
+    });
+
+    const avgWeightCompra = weightCompraCount > 0 ? (sumWeightCompra / weightCompraCount) : 0;
+    const avgPriceCompraCabeca = compCount > 0 ? (sumValCompra / compCount) : 0;
+    const avgPriceCompraKg = sumWeightCompra > 0 ? (sumValCompra / sumWeightCompra) : 0;
+
+    setElText('met-compra-qtd', compCount);
+    setElText('met-compra-peso', avgWeightCompra > 0 ? `${avgWeightCompra.toFixed(1)} kg` : '-');
+    setElText('met-compra-preco-cabeca', this.formatCurrency(avgPriceCompraCabeca));
+    setElText('met-compra-preco-kg', avgPriceCompraKg > 0 ? `${this.formatCurrency(avgPriceCompraKg)}/kg` : '-');
+
+    // Métricas de Venda
+    const vendCount = sales.length;
+    let sumWeightVenda = 0;
+    let sumValVenda = 0;
+    let sumWeightGain = 0;
+    let sumDays = 0;
+    let validPerformanceCount = 0;
+
+    sales.forEach(s => {
+      sumValVenda += s.valor;
+      sumWeightVenda += s.peso_venda;
+
+      // Desempenho comercial
+      const p = purchases.find(pur => pur.animal_id === s.animal_id);
+      const weights = window.db.getAnimalWeights(s.animal_id);
+      if (weights.length > 0) {
+        const sorted = [...weights].sort((a, b) => new Date(a.data) - new Date(b.data));
+        const purchaseWeight = sorted[0].peso;
+        const gain = s.peso_venda - purchaseWeight;
+        sumWeightGain += gain;
+
+        if (p) {
+          const dateCompra = new Date(p.data + 'T00:00:00');
+          const dateVenda = new Date(s.data + 'T00:00:00');
+          const diffTime = Math.abs(dateVenda - dateCompra);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+          sumDays += diffDays;
+          validPerformanceCount++;
+        }
+      }
+    });
+
+    const avgWeightVenda = vendCount > 0 ? (sumWeightVenda / vendCount) : 0;
+    const avgPriceVendaCabeca = vendCount > 0 ? (sumValVenda / vendCount) : 0;
+    const avgPriceVendaKg = sumWeightVenda > 0 ? (sumValVenda / sumWeightVenda) : 0;
+
+    const avgGain = validPerformanceCount > 0 ? (sumWeightGain / validPerformanceCount) : 0;
+    const avgDays = validPerformanceCount > 0 ? (sumDays / validPerformanceCount) : 0;
+    const avgGMD = avgDays > 0 ? (avgGain / avgDays) : 0;
+
+    setElText('met-venda-qtd', vendCount);
+    setElText('met-venda-peso', avgWeightVenda > 0 ? `${avgWeightVenda.toFixed(1)} kg` : '-');
+    setElText('met-venda-preco-cabeca', this.formatCurrency(avgPriceVendaCabeca));
+    setElText('met-venda-preco-kg', avgPriceVendaKg > 0 ? `${this.formatCurrency(avgPriceVendaKg)}/kg` : '-');
+
+    setElText('met-ganho-peso-medio', avgGain !== 0 ? `${avgGain.toFixed(1)} kg` : '-');
+    setElText('met-permanencia-media', avgDays > 0 ? `${Math.round(avgDays)} dias` : '-');
+    setElText('met-gmd-medio', avgGMD > 0 ? `${avgGMD.toFixed(2)} kg/dia` : '-');
+  }
+
+  // --- CUSTOS DA FAZENDA ---
+  renderPropertyCostsView() {
+    const tableBody = document.getElementById('property-costs-tbody');
+    if (!tableBody) return;
+
+    const costs = window.db.getPropertyCosts();
+    
+    const searchVal = document.getElementById('cost-filter-search')?.value.toLowerCase() || '';
+    const catFilter = document.getElementById('cost-filter-categoria')?.value || 'Todos';
+    const periodFilter = document.getElementById('cost-filter-periodo')?.value || 'Todos';
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    let filteredCosts = costs.filter(c => {
+      if (searchVal && !c.descricao.toLowerCase().includes(searchVal)) {
+        return false;
+      }
+      
+      if (catFilter !== 'Todos' && c.categoria !== catFilter) {
+        return false;
+      }
+
+      if (periodFilter !== 'Todos') {
+        const costDate = new Date(c.data + 'T00:00:00');
+        if (periodFilter === 'Mes') {
+          if (costDate.getFullYear() !== currentYear || costDate.getMonth() !== currentMonth) {
+            return false;
+          }
+        } else if (periodFilter === 'Ano') {
+          if (costDate.getFullYear() !== currentYear) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+
+    filteredCosts.sort((a, b) => {
+      const dateA = new Date(a.data);
+      const dateB = new Date(b.data);
+      if (dateB - dateA !== 0) return dateB - dateA;
+      return b.id - a.id;
+    });
+
+    if (filteredCosts.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px 0;">Nenhum custo registrado para o filtro selecionado.</td></tr>`;
+    } else {
+      tableBody.innerHTML = filteredCosts.map(c => `
+        <tr>
+          <td>${this.formatDate(c.data)}</td>
+          <td><span class="badge badge-neutral">${c.categoria}</span></td>
+          <td>${c.descricao || '-'}</td>
+          <td style="font-weight: 600; color: var(--danger);">${this.formatCurrency(c.valor)}</td>
+          <td>${c.periodicidade}</td>
+          <td>
+            <button class="action-btn btn-delete btn-sm" title="Excluir Custo" onclick="window.app.deletePropertyCost(${c.id})">
+              <i class="lucide-trash-2"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+
+    let totalAcumulado = 0;
+    let totalMes = 0;
+    let totalAno = 0;
+
+    costs.forEach(c => {
+      const val = parseFloat(c.valor) || 0;
+      totalAcumulado += val;
+      
+      const costDate = new Date(c.data + 'T00:00:00');
+      if (costDate.getFullYear() === currentYear) {
+        totalAno += val;
+        if (costDate.getMonth() === currentMonth) {
+          totalMes += val;
+        }
+      }
+    });
+
+    document.getElementById('cost-summary-month').textContent = this.formatCurrency(totalMes);
+    document.getElementById('cost-summary-year').textContent = this.formatCurrency(totalAno);
+    document.getElementById('cost-summary-total').textContent = this.formatCurrency(totalAcumulado);
+
+    this.renderPropertyCostsChart(costs);
+  }
+
+  renderPropertyCostsChart(costs) {
+    const categories = [
+      'Funcionários',
+      'Alimentação Geral',
+      'Manutenção',
+      'Combustível',
+      'Impostos/Taxas',
+      'Energia/Água',
+      'Vacinas/Medicamentos Geral',
+      'Outros'
+    ];
+
+    const sums = categories.map(cat => 
+      costs.filter(c => c.categoria === cat).reduce((sum, c) => sum + (parseFloat(c.valor) || 0), 0)
+    );
+
+    const ctx = document.getElementById('chartPropertyCostsByCategory');
+    if (!ctx) return;
+
+    if (uiCharts.propertyCostsCategory) {
+      uiCharts.propertyCostsCategory.destroy();
+    }
+
+    uiCharts.propertyCostsCategory = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: categories.map(cat => cat.split('/')[0].trim()),
+        datasets: [{
+          data: sums,
+          backgroundColor: [
+            '#fbbf24', '#f472b6', '#3b82f6', '#ec4899',
+            '#ef4444', '#10b981', '#a855f7', '#64748b'
+          ],
+          borderWidth: 2,
+          borderColor: 'var(--bg-surface)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              color: 'var(--text-main)',
+              font: { family: 'Outfit', size: 10 },
+              boxWidth: 8,
+              padding: 5
+            }
+          }
+        }
+      }
+    });
   }
 }
 

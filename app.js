@@ -159,6 +159,9 @@ class AppController {
       case 'clientes':
         window.ui.renderClientsView();
         break;
+      case 'custos':
+        window.ui.renderPropertyCostsView();
+        break;
       case 'relatorios':
         window.ui.renderReportsView();
         break;
@@ -178,7 +181,9 @@ class AppController {
       'weight-data',
       'birth-data',
       'buy-data',
-      'sell-data'
+      'sell-data',
+      'expense-data',
+      'cost-data'
     ];
 
     fields.forEach(id => {
@@ -221,6 +226,15 @@ class AppController {
       });
     }
 
+    const filterLoteSelect = document.getElementById('animal-filter-lote');
+    if (filterLoteSelect) {
+      filterLoteSelect.addEventListener('change', () => {
+        const catFilter = document.querySelector('#animal-filter-tab .filter-tab.active')?.dataset.filter || 'Todos';
+        const q = document.getElementById('animal-search-input')?.value || '';
+        window.ui.renderAnimalsList(catFilter, q);
+      });
+    }
+
     const filterTabs = document.querySelectorAll('#animal-filter-tab .filter-tab');
     filterTabs.forEach(tab => {
       tab.addEventListener('click', () => {
@@ -239,33 +253,63 @@ class AppController {
       });
     }
 
-    // Evento de seleção de animal no modal de venda para preencher o peso automaticamente
-    const saleAnimalSelect = document.getElementById('sale-animal-select');
-    if (saleAnimalSelect) {
-      saleAnimalSelect.addEventListener('change', (e) => {
-        const animalId = e.target.value;
-        const pesoVendaInput = document.getElementById('sale-peso-venda');
-        if (pesoVendaInput) {
-          if (animalId) {
-            const animal = window.db.getAnimal(animalId);
-            pesoVendaInput.value = animal ? (animal.peso_atual || '') : '';
-          } else {
-            pesoVendaInput.value = '';
-          }
+    // Alterna exibição do campo de quantidade em lote no cadastro de animais
+    const lotCheckbox = document.getElementById('animal-cadastro-lote');
+    if (lotCheckbox) {
+      lotCheckbox.addEventListener('change', (e) => {
+        const qtdGroup = document.getElementById('lote-qtd-group');
+        const isLote = e.target.checked;
+        if (qtdGroup) {
+          if (isLote) qtdGroup.classList.remove('hidden');
+          else qtdGroup.classList.add('hidden');
         }
+        
+        // Altera labels para refletir lote
+        const codeLabel = document.querySelector('label[for="animal-codigo"]');
+        const brincoLabel = document.querySelector('label[for="animal-brinco"]');
+        if (codeLabel) codeLabel.textContent = isLote ? "Prefixo do Código *" : "Código do Animal *";
+        if (brincoLabel) brincoLabel.textContent = isLote ? "Brinco Inicial *" : "Número do Brinco *";
+
+        this.updateBatchPurchaseCalculation();
       });
     }
 
-    // Habilita temporariamente o select de animal desativado durante a submissão para que a FormData o capture
-    const saleForm = document.getElementById('form-sale-modal');
-    if (saleForm) {
-      saleForm.addEventListener('submit', () => {
-        const animalSelect = document.getElementById('sale-animal-select');
-        if (animalSelect && animalSelect.disabled) {
-          animalSelect.disabled = false;
-          setTimeout(() => {
-            animalSelect.disabled = true;
-          }, 0);
+    const lotQtdInput = document.getElementById('animal-lote-qtd');
+    if (lotQtdInput) {
+      lotQtdInput.addEventListener('input', () => this.updateBatchPurchaseCalculation());
+    }
+    const valCompraInput = document.getElementById('animal-valor-compra');
+    if (valCompraInput) {
+      valCompraInput.addEventListener('input', () => this.updateBatchPurchaseCalculation());
+    }
+    const tipoValSelect = document.getElementById('animal-tipo-valor-compra');
+    if (tipoValSelect) {
+      tipoValSelect.addEventListener('change', () => this.updateBatchPurchaseCalculation());
+    }
+
+    // Busca reativa na lista de animais no modal de vendas
+    const saleSearchInput = document.getElementById('sale-search-animals');
+    if (saleSearchInput) {
+      saleSearchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.sale-animal-item');
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          if (text.includes(query)) {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // Evento de seleção de animal no modal de venda para somar pesos e atualizar sumário
+    const saleListContainer = document.getElementById('sale-animals-list');
+    if (saleListContainer) {
+      saleListContainer.addEventListener('change', (e) => {
+        if (e.target.classList.contains('sale-animal-checkbox')) {
+          this.updateSaleSelectedSummary();
         }
       });
     }
@@ -276,10 +320,26 @@ class AppController {
     this.bindFormSubmit('form-weight', (data) => this.handleWeightSubmit(data));
     this.bindFormSubmit('form-birth', (data) => this.handleBirthSubmit(data));
     this.bindFormSubmit('form-sale-modal', (data) => this.handleSaleSubmit(data));
+    this.bindFormSubmit('form-expense', (data) => this.handleExpenseSubmit(data));
+    this.bindFormSubmit('form-property-cost', (data) => this.handlePropertyCostSubmit(data));
     this.bindFormSubmit('form-client', (data) => this.handleClientSubmit(data));
     this.bindFormSubmit('form-client-modal', (data) => this.handleClientSubmit(data));
     this.bindFormSubmit('form-configuracoes', (data) => this.handleConfiguracoesSubmit(data));
     this.bindFormSubmit('form-change-password', (data) => this.handleChangePasswordSubmit(data));
+
+    // Filtros de Custos da Fazenda
+    const costSearch = document.getElementById('cost-filter-search');
+    if (costSearch) {
+      costSearch.addEventListener('input', () => window.ui.renderPropertyCostsView());
+    }
+    const costFilterCat = document.getElementById('cost-filter-categoria');
+    if (costFilterCat) {
+      costFilterCat.addEventListener('change', () => window.ui.renderPropertyCostsView());
+    }
+    const costFilterPer = document.getElementById('cost-filter-periodo');
+    if (costFilterPer) {
+      costFilterPer.addEventListener('change', () => window.ui.renderPropertyCostsView());
+    }
 
     // Fechar modais ao clicar no overlay
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -361,13 +421,65 @@ class AppController {
       if (compFields) compFields.classList.add('hidden');
       if (nascFields) nascFields.classList.add('hidden');
     }
+
+    this.updateBatchPurchaseCalculation();
+  }
+
+  // Atualiza cálculo dinâmico de compras em lote
+  updateBatchPurchaseCalculation() {
+    const isLote = document.getElementById('animal-cadastro-lote')?.checked;
+    const origem = document.getElementById('animal-origem')?.value;
+    const calcInfo = document.getElementById('lote-compra-calculo-info');
+    const tipoValorSelect = document.getElementById('group-animal-tipo-valor');
+
+    if (!isLote || origem !== 'Comprado') {
+      if (calcInfo) calcInfo.style.display = 'none';
+      if (tipoValorSelect) tipoValorSelect.style.display = 'none';
+      return;
+    }
+
+    if (calcInfo) calcInfo.style.display = 'block';
+    if (tipoValorSelect) tipoValorSelect.style.display = 'block';
+
+    const qty = parseInt(document.getElementById('animal-lote-qtd')?.value) || 10;
+    const value = parseFloat(document.getElementById('animal-valor-compra')?.value) || 0;
+    const type = document.getElementById('animal-tipo-valor-compra')?.value || 'unitario';
+
+    let unitPrice = 0;
+    let totalPrice = 0;
+
+    if (type === 'unitario') {
+      unitPrice = value;
+      totalPrice = value * qty;
+    } else {
+      totalPrice = value;
+      unitPrice = qty > 0 ? (value / qty) : 0;
+    }
+
+    if (calcInfo) {
+      calcInfo.innerHTML = `Lote de <strong>${qty}</strong> animais: <strong>${window.ui.formatCurrency(unitPrice)}</strong> unitário | <strong>Total do Lote: ${window.ui.formatCurrency(totalPrice)}</strong>`;
+    }
   }
 
   // --- SUBMIT HANDLERS ---
 
+  // Helper para incrementar códigos e brincos (ex: BOI001 -> BOI002, 1025 -> 1026)
+  incrementIdentifier(id, offset) {
+    if (!id) return id;
+    const match = id.match(/^(.*?)(\d+)$/);
+    if (!match) return id + offset;
+    const prefix = match[1];
+    const numberStr = match[2];
+    const nextNumber = parseInt(numberStr) + offset;
+    const padded = nextNumber.toString().padStart(numberStr.length, '0');
+    return prefix + padded;
+  }
+
   // Cadastro/Edição de Animais
   handleAnimalSubmit(data) {
     const isEdit = !!data.id;
+    const isLote = !isEdit && document.getElementById('animal-cadastro-lote')?.checked;
+    const loteQtd = isLote ? (parseInt(data.lote_qtd) || 10) : 1;
 
     // Validações antes de cadastrar
     if (!isEdit) {
@@ -394,54 +506,108 @@ class AppController {
         return;
       }
     }
-    
-    // Objeto base do animal
-    const animalData = {
-      codigo: data.codigo,
-      brinco: data.brinco,
-      nome: data.nome,
-      sexo: data.sexo,
-      raca: data.raca,
-      categoria: data.categoria,
-      nascimento: data.nascimento,
-      origem: data.origem,
-      foto: '',
-      peso_atual: parseFloat(data.peso_atual) || 0
-    };
 
-    if (isEdit) {
-      animalData.id = parseInt(data.id);
-      animalData.status = data.status || 'Ativo';
+    if (isLote) {
+      // Cadastro em Lote
+      const compraGrupoId = Date.now() * 100 + Math.floor(Math.random() * 100);
+      
+      for (let i = 0; i < loteQtd; i++) {
+        const animalCode = this.incrementIdentifier(data.codigo, i);
+        const animalBrinco = this.incrementIdentifier(data.brinco, i);
+        const animalNome = data.nome ? `${data.nome} ${i + 1}` : '';
+
+        const animalData = {
+          codigo: animalCode,
+          brinco: animalBrinco,
+          nome: animalNome,
+          sexo: data.sexo,
+          raca: data.raca,
+          categoria: data.categoria,
+          nascimento: data.nascimento,
+          origem: data.origem,
+          foto: '',
+          peso_atual: parseFloat(data.peso_atual) || 0
+        };
+
+        const saved = window.db.saveAnimal(animalData);
+
+        if (data.origem === 'Comprado') {
+          let valorUnitario = parseFloat(data.valor_compra) || 0;
+          if (isLote && data.tipo_valor_compra === 'total') {
+            valorUnitario = valorUnitario / loteQtd;
+          }
+
+          window.db.addPurchase({
+            animal_id: saved.id,
+            fornecedor: parseInt(data.fornecedor),
+            valor: parseFloat(valorUnitario.toFixed(2)),
+            data: data.data_compra || new Date().toISOString().split('T')[0],
+            compra_grupo_id: compraGrupoId
+          });
+        } else if (data.origem === 'Nascido') {
+          window.db.addBirth({
+            animal_id: saved.id,
+            mae_id: parseInt(data.mae_id),
+            pai_id: data.pai_id ? parseInt(data.pai_id) : null,
+            data: data.nascimento,
+            peso_ao_nascer: parseFloat(data.peso_atual) || 0
+          });
+        }
+      }
+      
+      window.ui.showToast(`${loteQtd} animais cadastrados com sucesso em lote!`);
+    } else {
+      // Cadastro individual normal
+      const animalData = {
+        codigo: data.codigo,
+        brinco: data.brinco,
+        nome: data.nome,
+        sexo: data.sexo,
+        raca: data.raca,
+        categoria: data.categoria,
+        nascimento: data.nascimento,
+        origem: data.origem,
+        foto: '',
+        peso_atual: parseFloat(data.peso_atual) || 0
+      };
+
+      if (isEdit) {
+        animalData.id = parseInt(data.id);
+        animalData.status = data.status || 'Ativo';
+      }
+
+      const saved = window.db.saveAnimal(animalData);
+
+      if (!isEdit && data.origem === 'Comprado') {
+        window.db.addPurchase({
+          animal_id: saved.id,
+          fornecedor: parseInt(data.fornecedor),
+          valor: parseFloat(data.valor_compra) || 0,
+          data: data.data_compra || new Date().toISOString().split('T')[0]
+        });
+      }
+
+      if (!isEdit && data.origem === 'Nascido') {
+        window.db.addBirth({
+          animal_id: saved.id,
+          mae_id: parseInt(data.mae_id),
+          pai_id: data.pai_id ? parseInt(data.pai_id) : null,
+          data: data.nascimento,
+          peso_ao_nascer: parseFloat(data.peso_atual) || 0
+        });
+      }
+
+      window.ui.showToast(isEdit ? 'Cadastro de animal atualizado com sucesso!' : 'Animal cadastrado com sucesso!');
     }
 
-    const saved = window.db.saveAnimal(animalData);
-
-    // Se for inserção e Comprado, cria registro de compra
-    if (!isEdit && data.origem === 'Comprado') {
-      window.db.addPurchase({
-        animal_id: saved.id,
-        fornecedor: parseInt(data.fornecedor),
-        valor: parseFloat(data.valor_compra) || 0,
-        data: data.data_compra || new Date().toISOString().split('T')[0]
-      });
-    }
-
-    // Se for inserção e Nascido, cria registro de nascimento
-    if (!isEdit && data.origem === 'Nascido') {
-      window.db.addBirth({
-        animal_id: saved.id,
-        mae_id: parseInt(data.mae_id),
-        pai_id: data.pai_id ? parseInt(data.pai_id) : null,
-        data: data.nascimento,
-        peso_ao_nascer: parseFloat(data.peso_atual) || 0
-      });
-    }
-
-    window.ui.showToast(isEdit ? 'Cadastro de animal atualizado com sucesso!' : 'Animal cadastrado com sucesso!');
     this.closeModal('modal-animal-form');
     document.getElementById('form-animal').reset();
-    this.toggleAnimalOrigemFields('');
     
+    // Oculta campo Qtd se estava ativo
+    const qtdGroup = document.getElementById('lote-qtd-group');
+    if (qtdGroup) qtdGroup.classList.add('hidden');
+    
+    this.toggleAnimalOrigemFields('');
     this.refreshTabContent(this.activeTab);
   }
 
@@ -513,31 +679,175 @@ class AppController {
 
   // Venda (Modal de Venda)
   handleSaleSubmit(data) {
-    if (!data.animal_id || !data.comprador || !data.valor || !data.peso_venda || !data.data || !data.forma_pagamento) {
+    const checkedBoxes = Array.from(document.querySelectorAll('.sale-animal-checkbox:checked'));
+    if (checkedBoxes.length === 0) {
+      window.ui.showToast('Selecione pelo menos um animal para a venda.', 'error');
+      return;
+    }
+    if (!data.comprador || !data.valor || !data.peso_venda || !data.data || !data.forma_pagamento) {
       window.ui.showToast('Preencha todos os campos obrigatórios da venda', 'error');
       return;
     }
 
-    const sale = window.db.addSale({
-      animal_id: parseInt(data.animal_id),
-      comprador: parseInt(data.comprador),
-      valor: parseFloat(data.valor),
-      peso_venda: parseFloat(data.peso_venda),
-      data: data.data,
-      desconto: parseFloat(data.desconto) || 0,
-      forma_pagamento: data.forma_pagamento
-    });
+    const totalValor = parseFloat(data.valor) || 0;
+    const totalDesconto = parseFloat(data.desconto) || 0;
+    const totalPeso = parseFloat(data.peso_venda) || 0;
 
-    window.ui.showToast('Venda registrada com sucesso! Animal removido do estoque ativo.');
+    let saleResult = null;
+
+    if (checkedBoxes.length === 1) {
+      // Venda única
+      saleResult = window.db.addSale({
+        animal_id: parseInt(checkedBoxes[0].value),
+        comprador: parseInt(data.comprador),
+        valor: totalValor,
+        peso_venda: totalPeso,
+        data: data.data,
+        desconto: totalDesconto,
+        forma_pagamento: data.forma_pagamento
+      });
+      window.ui.showToast('Venda registrada com sucesso! Animal removido do estoque.');
+    } else {
+      // Venda em Lote
+      const vendaGrupoId = Date.now() * 100 + Math.floor(Math.random() * 100);
+      const count = checkedBoxes.length;
+      const valorPerHead = totalValor / count;
+      const descontoPerHead = totalDesconto / count;
+      const totalOriginalPeso = checkedBoxes.reduce((acc, cb) => acc + (parseFloat(cb.dataset.peso) || 0), 0);
+
+      checkedBoxes.forEach((cb) => {
+        const animId = parseInt(cb.value);
+        const originalPeso = parseFloat(cb.dataset.peso) || 0;
+        
+        // Distribui o peso proporcionalmente se o peso total foi alterado, ou usa o peso individual
+        let pesoVenda = originalPeso;
+        if (totalOriginalPeso > 0 && Math.abs(totalOriginalPeso - totalPeso) > 1) {
+          pesoVenda = (originalPeso / totalOriginalPeso) * totalPeso;
+        } else if (originalPeso === 0) {
+          pesoVenda = totalPeso / count;
+        }
+
+        saleResult = window.db.addSale({
+          animal_id: animId,
+          comprador: parseInt(data.comprador),
+          valor: valorPerHead,
+          peso_venda: parseFloat(pesoVenda.toFixed(1)),
+          data: data.data,
+          desconto: descontoPerHead,
+          forma_pagamento: data.forma_pagamento,
+          venda_grupo_id: vendaGrupoId
+        });
+      });
+
+      window.ui.showToast(`Venda de lote com ${count} animais registrada com sucesso!`);
+    }
+
     this.closeModal('modal-sale-form');
     document.getElementById('form-sale-modal').reset();
     this.setDefaultDates();
+
+    // Limpa lista de seleção e sumário
+    const listContainer = document.getElementById('sale-animals-list');
+    if (listContainer) listContainer.innerHTML = '';
+    const summary = document.getElementById('sale-selected-summary');
+    if (summary) summary.textContent = 'Nenhum animal selecionado.';
 
     this.refreshTabContent(this.activeTab);
 
     // Pergunta se deseja emitir o recibo logo após salvar
     if (confirm('Deseja emitir o recibo em PDF desta venda agora?')) {
-      this.printReceipt(sale.id);
+      this.printReceipt(saleResult.id);
+    }
+  }
+
+  // Lançamento de despesa / custo de manejo
+  handleExpenseSubmit(data) {
+    if (!data.animal_id || !data.tipo || !data.valor || !data.data) {
+      window.ui.showToast('Preencha todos os campos obrigatórios da despesa', 'error');
+      return;
+    }
+
+    window.db.addExpense({
+      animal_id: parseInt(data.animal_id),
+      tipo: data.tipo,
+      descricao: data.descricao || '',
+      valor: parseFloat(data.valor) || 0,
+      data: data.data
+    });
+
+    window.ui.showToast('Custo/Despesa adicionado com sucesso!');
+    this.closeModal('modal-expense-form');
+    document.getElementById('form-expense').reset();
+
+    // Recarrega o perfil do animal para refletir a nova despesa
+    if (window.ui && typeof window.ui.showAnimalDetails === 'function') {
+      window.ui.showAnimalDetails(data.animal_id);
+    }
+  }
+
+  // Lançamento de custo geral da fazenda
+  handlePropertyCostSubmit(data) {
+    if (!data.categoria || !data.valor || !data.data || !data.periodicidade) {
+      window.ui.showToast('Preencha todos os campos obrigatórios do custo', 'error');
+      return;
+    }
+
+    window.db.addPropertyCost({
+      categoria: data.categoria,
+      descricao: data.descricao || '',
+      valor: parseFloat(data.valor) || 0,
+      data: data.data,
+      periodicidade: data.periodicidade
+    });
+
+    window.ui.showToast('Custo geral da fazenda adicionado com sucesso!');
+    document.getElementById('form-property-cost').reset();
+    this.setDefaultDates();
+    
+    // Recarrega visualização
+    window.ui.renderPropertyCostsView();
+  }
+
+  deletePropertyCost(id) {
+    if (confirm('Deseja realmente excluir este custo geral da fazenda?')) {
+      window.db.deletePropertyCost(id);
+      window.ui.showToast('Custo geral excluído.');
+      window.ui.renderPropertyCostsView();
+    }
+  }
+
+  // Abertura do modal de despesa a partir do perfil
+  openAddExpenseModal() {
+    const animalId = document.getElementById('expense-animal-id').value;
+    if (!animalId) return;
+    
+    const dateInput = document.getElementById('expense-data');
+    if (dateInput) dateInput.value = window.ui.todayString();
+    
+    this.openModal('modal-expense-form');
+  }
+
+  // Atualiza peso total e quantidade de animais selecionados no modal de vendas
+  updateSaleSelectedSummary() {
+    const checkedBoxes = Array.from(document.querySelectorAll('.sale-animal-checkbox:checked'));
+    const summary = document.getElementById('sale-selected-summary');
+    const pesoInput = document.getElementById('sale-peso-venda');
+
+    if (checkedBoxes.length === 0) {
+      if (summary) summary.textContent = 'Nenhum animal selecionado.';
+      if (pesoInput) pesoInput.value = '';
+      return;
+    }
+
+    const count = checkedBoxes.length;
+    const totalPeso = checkedBoxes.reduce((acc, cb) => acc + (parseFloat(cb.dataset.peso) || 0), 0);
+
+    if (summary) {
+      summary.innerHTML = `<span style="color: var(--success); font-weight: 700;">${count}</span> animal(is) selecionado(s) - Peso Estimado: <strong>${totalPeso.toFixed(1)} kg</strong>`;
+    }
+
+    if (pesoInput) {
+      pesoInput.value = totalPeso.toFixed(1);
     }
   }
 
@@ -585,6 +895,44 @@ class AppController {
     window.ui.showAnimalDetails(id);
   }
 
+  // Visualizar detalhes dos animais em lote de compra
+  viewPurchaseLotDetails(groupId) {
+    const purchases = window.db.getPurchases();
+    const groupPurchases = purchases.filter(p => p.compra_grupo_id === parseInt(groupId));
+    if (groupPurchases.length === 0) return;
+
+    const animals = window.db.getAnimals();
+    const lotAnimals = groupPurchases.map(p => animals.find(a => a.id === p.animal_id)).filter(Boolean);
+
+    const tbody = document.getElementById('lote-animais-tbody');
+    if (tbody) {
+      if (lotAnimals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px 0;">Nenhum animal encontrado.</td></tr>';
+      } else {
+        tbody.innerHTML = lotAnimals.map(a => `
+          <tr>
+            <td><strong>${a.codigo}</strong></td>
+            <td><strong>${a.brinco}</strong></td>
+            <td>${a.raca}</td>
+            <td><span class="badge badge-neutral">${a.categoria}</span></td>
+            <td>${a.peso_atual > 0 ? `${a.peso_atual} kg` : '-'}</td>
+            <td>
+              <button class="action-btn" title="Ver Perfil" onclick="window.app.closeModal('modal-lote-compras-detalhes'); window.app.viewAnimalProfile(${a.id});">
+                <i class="lucide-eye"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+
+    this.openModal('modal-lote-compras-detalhes');
+  }
+
   // Adicionar nova pesagem para animal específico via tabela
   openWeightModal(animalId) {
     this.switchTab('pesagens');
@@ -596,7 +944,7 @@ class AppController {
   }
 
   prepareSaleModal(preselectedAnimalId = null) {
-    const animalSelect = document.getElementById('sale-animal-select');
+    const listContainer = document.getElementById('sale-animals-list');
     const compradorSelect = document.getElementById('sale-comprador');
     const pesoVendaInput = document.getElementById('sale-peso-venda');
 
@@ -607,8 +955,8 @@ class AppController {
         buyers.map(b => `<option value="${b.id}">${b.nome} (${b.cidade})</option>`).join('');
     }
 
-    // Popula animais dropdown
-    if (animalSelect) {
+    // Popula lista de animais ativos com checkboxes
+    if (listContainer) {
       const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
       
       let targetAnimal = null;
@@ -616,7 +964,7 @@ class AppController {
         targetAnimal = window.db.getAnimal(preselectedAnimalId);
       }
 
-      // Garante que o animal selecionado está na lista mesmo se não estiver ativo
+      // Garante que o animal pré-selecionado está na lista
       const listToShow = [...activeAnimals];
       if (targetAnimal && !activeAnimals.some(a => a.id === targetAnimal.id)) {
         listToShow.push(targetAnimal);
@@ -625,28 +973,28 @@ class AppController {
       // Ordena por brinco
       listToShow.sort((a, b) => a.brinco.localeCompare(b.brinco));
 
-      if (preselectedAnimalId) {
-        animalSelect.innerHTML = listToShow.map(a => 
-          `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'} (${a.categoria})</option>`
-        ).join('');
-        animalSelect.value = preselectedAnimalId;
-        animalSelect.disabled = true;
+      listContainer.innerHTML = listToShow.map(a => {
+        const isChecked = (targetAnimal && a.id === targetAnimal.id) ? 'checked' : '';
+        const isDisabled = (preselectedAnimalId) ? 'disabled' : '';
+        return `
+          <label class="sale-animal-item" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background-color 0.2s;">
+            <input type="checkbox" value="${a.id}" class="sale-animal-checkbox" ${isChecked} ${isDisabled} data-peso="${a.peso_atual || 0}" style="width: 16px; height: 16px; cursor: pointer;">
+            <span style="font-size: 13px; color: var(--text-main);">
+              Brinco <strong>${a.brinco}</strong> - ${a.nome || 'Sem Nome'} (${a.raca}, ${a.categoria}, ${a.peso_atual || 0} kg)
+            </span>
+          </label>
+        `;
+      }).join('');
 
-        if (pesoVendaInput && targetAnimal) {
-          pesoVendaInput.value = targetAnimal.peso_atual || '';
-        }
-      } else {
-        animalSelect.innerHTML = '<option value="">Selecione o Animal...</option>' +
-          listToShow.map(a => 
-            `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'} (${a.categoria})</option>`
-          ).join('');
-        animalSelect.value = '';
-        animalSelect.disabled = false;
-        
-        if (pesoVendaInput) {
-          pesoVendaInput.value = '';
-        }
+      // Limpa buscador
+      const searchInput = document.getElementById('sale-search-animals');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.disabled = !!preselectedAnimalId;
       }
+
+      // Atualiza o peso total e o resumo baseado nas seleções atuais
+      this.updateSaleSelectedSummary();
     }
   }
 
@@ -666,12 +1014,28 @@ class AppController {
       const idInput = form.querySelector('input[name="id"]');
       if (idInput) idInput.remove();
     }
+    
+    // Reset labels e exibição de lote
+    const codeLabel = document.querySelector('label[for="animal-codigo"]');
+    const brincoLabel = document.querySelector('label[for="animal-brinco"]');
+    if (codeLabel) codeLabel.textContent = "Código do Animal *";
+    if (brincoLabel) brincoLabel.textContent = "Número do Brinco *";
+    
+    const qtdGroup = document.getElementById('lote-qtd-group');
+    if (qtdGroup) qtdGroup.classList.add('hidden');
+    
+    const lotContainer = document.getElementById('lote-checkbox-container');
+    if (lotContainer) lotContainer.style.display = 'flex';
+
     this.setDefaultDates();
     this.toggleAnimalOrigemFields('');
     
-    // Habilita campo Origem
+    // Habilita campo Origem e Peso
     const oSelect = document.getElementById('animal-origem');
     if (oSelect) oSelect.disabled = false;
+
+    const pesoField = document.getElementById('animal-peso-atual');
+    if (pesoField) pesoField.disabled = false;
 
     this.openModal('modal-animal-form');
   }
@@ -712,6 +1076,16 @@ class AppController {
     oSelect.value = animal.origem;
     oSelect.disabled = true;
 
+    // Oculta opção de lote na edição
+    const lotContainer = document.getElementById('lote-checkbox-container');
+    if (lotContainer) lotContainer.style.display = 'none';
+
+    // Reset labels
+    const codeLabel = document.querySelector('label[for="animal-codigo"]');
+    const brincoLabel = document.querySelector('label[for="animal-brinco"]');
+    if (codeLabel) codeLabel.textContent = "Código do Animal *";
+    if (brincoLabel) brincoLabel.textContent = "Número do Brinco *";
+
     this.toggleAnimalOrigemFields(''); // Esconde ambos
 
     // Peso atual (somente leitura para alterar via histórico de pesagens)
@@ -748,6 +1122,31 @@ class AppController {
       window.ui.showToast('Pesagem excluída.');
       window.ui.updateWeightHistoryTable();
       this.refreshTabContent('dashboard');
+    }
+  }
+
+  // Deletar Despesa de Manejo
+  deleteExpense(id) {
+    if (confirm('Deseja excluir esta despesa de manejo?')) {
+      const expense = window.db.getExpenses().find(e => e.id === parseInt(id));
+      const animalId = expense ? expense.animal_id : null;
+      
+      window.db.deleteExpense(id);
+      window.ui.showToast('Despesa de manejo excluída.');
+      
+      if (animalId && window.ui && typeof window.ui.showAnimalDetails === 'function') {
+        window.ui.showAnimalDetails(animalId);
+      }
+      this.refreshTabContent(this.activeTab);
+    }
+  }
+
+  // Deletar Venda
+  deleteSale(id) {
+    if (confirm('Deseja realmente excluir esta venda? O(s) animal(is) voltará(ão) a ficar ativo(s) no estoque.')) {
+      window.db.deleteSale(id);
+      window.ui.showToast('Venda excluída e animal(is) reativado(s).');
+      this.refreshTabContent(this.activeTab);
     }
   }
 
@@ -977,6 +1376,318 @@ class AppController {
     // Cria uma nova janela de visualização e impressão
     const printWindow = window.open('', '_blank');
     
+    if (reportType === 'financeiro') {
+      const costs = window.db.getPropertyCosts();
+      const fatBruto = sales.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
+      const descontos = sales.reduce((sum, s) => sum + (parseFloat(s.desconto) || 0), 0);
+      const recLiquida = fatBruto - descontos;
+
+      let cav = 0;
+      sales.forEach(s => {
+        const p = purchases.find(pur => pur.animal_id === s.animal_id);
+        if (p) cav += (parseFloat(p.valor) || 0);
+      });
+
+      const lucroBruto = recLiquida - cav;
+
+      const categoriesSum = {
+        'Funcionários': 0,
+        'Alimentação Geral': 0,
+        'Manutenção': 0,
+        'Combustível': 0,
+        'Energia/Água': 0,
+        'Impostos/Taxas': 0,
+        'Vacinas/Medicamentos Geral': 0,
+        'Outros': 0
+      };
+
+      costs.forEach(c => {
+        const cat = c.categoria;
+        if (categoriesSum[cat] !== undefined) {
+          categoriesSum[cat] += (parseFloat(c.valor) || 0);
+        } else {
+          categoriesSum['Outros'] += (parseFloat(c.valor) || 0);
+        }
+      });
+
+      const despesasTotal = Object.values(categoriesSum).reduce((sum, val) => sum + val, 0);
+      const resultadoLiquido = lucroBruto - despesasTotal;
+
+      // Zootecnia
+      const compCount = purchases.length;
+      let sumWeightCompra = 0;
+      let weightCompraCount = 0;
+      let sumValCompra = 0;
+
+      purchases.forEach(p => {
+        sumValCompra += p.valor;
+        const weights = window.db.getAnimalWeights(p.animal_id);
+        if (weights.length > 0) {
+          const sorted = [...weights].sort((a, b) => new Date(a.data) - new Date(b.data));
+          sumWeightCompra += sorted[0].peso;
+          weightCompraCount++;
+        }
+      });
+
+      const avgWeightCompra = weightCompraCount > 0 ? (sumWeightCompra / weightCompraCount) : 0;
+      const avgPriceCompraCabeca = compCount > 0 ? (sumValCompra / compCount) : 0;
+      const avgPriceCompraKg = sumWeightCompra > 0 ? (sumValCompra / sumWeightCompra) : 0;
+
+      const vendCount = sales.length;
+      let sumWeightVenda = 0;
+      let sumValVenda = 0;
+      let sumWeightGain = 0;
+      let sumDays = 0;
+      let validPerformanceCount = 0;
+
+      sales.forEach(s => {
+        sumValVenda += s.valor;
+        sumWeightVenda += s.peso_venda;
+
+        const p = purchases.find(pur => pur.animal_id === s.animal_id);
+        const weights = window.db.getAnimalWeights(s.animal_id);
+        if (weights.length > 0) {
+          const sorted = [...weights].sort((a, b) => new Date(a.data) - new Date(b.data));
+          const purchaseWeight = sorted[0].peso;
+          const gain = s.peso_venda - purchaseWeight;
+          sumWeightGain += gain;
+
+          if (p) {
+            const dateCompra = new Date(p.data + 'T00:00:00');
+            const dateVenda = new Date(s.data + 'T00:00:00');
+            const diffTime = Math.abs(dateVenda - dateCompra);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+            sumDays += diffDays;
+            validPerformanceCount++;
+          }
+        }
+      });
+
+      const avgWeightVenda = vendCount > 0 ? (sumWeightVenda / vendCount) : 0;
+      const avgPriceVendaCabeca = vendCount > 0 ? (sumValVenda / vendCount) : 0;
+      const avgPriceVendaKg = sumWeightVenda > 0 ? (sumValVenda / sumWeightVenda) : 0;
+
+      const avgGain = validPerformanceCount > 0 ? (sumWeightGain / validPerformanceCount) : 0;
+      const avgDays = validPerformanceCount > 0 ? (sumDays / validPerformanceCount) : 0;
+      const avgGMD = avgDays > 0 ? (avgGain / avgDays) : 0;
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>DRE & Balanço Financeiro - BoiUni</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #15803d; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { margin: 0; color: #15803d; font-size: 26px; }
+            .header p { margin: 5px 0 0 0; color: #64748b; font-size: 14px; }
+            
+            .financial-container { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; margin-top: 20px; }
+            
+            .section-title { font-size: 16px; font-weight: bold; color: #15803d; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; }
+            
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
+            
+            .row-bold { font-weight: bold; background-color: #f8fafc; }
+            .row-indent { padding-left: 24px; color: #475569; }
+            .text-right { text-align: right; }
+            .text-green { color: #166534; font-weight: 600; }
+            .text-red { color: #991b1b; font-weight: 600; }
+            
+            .summary-box { background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #15803d; }
+            .summary-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; color: #0f172a; }
+            .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+            .summary-item { display: flex; flex-direction: column; }
+            .summary-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .summary-value { font-size: 16px; font-weight: bold; }
+            
+            .footer { margin-top: 45px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 10px; }
+              .financial-container { display: block; }
+              .financial-container > div { margin-bottom: 40px; page-break-inside: avoid; }
+            }
+            .btn-print { background-color: #15803d; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>BoiUni - Gestão Agropecuária</h1>
+              <p>DRE & Balanço Financeiro da Fazenda</p>
+            </div>
+            <div class="no-print">
+              <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
+            </div>
+          </div>
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 25px;">Relatório consolidado gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+          
+          <div class="summary-box">
+            <div class="summary-title">Resumo do Período</div>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Faturamento</span>
+                <span class="summary-value">${window.ui.formatCurrency(fatBruto)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Custo Animais (CAV)</span>
+                <span class="summary-value">${window.ui.formatCurrency(cav)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Despesas Gerais</span>
+                <span class="summary-value">${window.ui.formatCurrency(despesasTotal)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Resultado Líquido</span>
+                <span class="summary-value ${resultadoLiquido >= 0 ? 'text-green' : 'text-red'}">${window.ui.formatCurrency(resultadoLiquido)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="financial-container">
+            <!-- Coluna DRE -->
+            <div>
+              <h4 class="section-title">Demonstrativo de Resultados (DRE)</h4>
+              <table>
+                <tbody>
+                  <tr class="row-bold">
+                    <td>(+) FATURAMENTO BRUTO (Vendas)</td>
+                    <td class="text-right text-green">${window.ui.formatCurrency(fatBruto)}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">(-) Descontos Concedidos</td>
+                    <td class="text-right text-red">-${window.ui.formatCurrency(descontos)}</td>
+                  </tr>
+                  <tr style="font-weight: 600;">
+                    <td>(=) RECEITA LÍQUIDA</td>
+                    <td class="text-right">${window.ui.formatCurrency(recLiquida)}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">(-) Custo de Aquisição dos Animais Vendidos (CAV)</td>
+                    <td class="text-right text-red">-${window.ui.formatCurrency(cav)}</td>
+                  </tr>
+                  <tr class="row-bold">
+                    <td>(=) LUCRO BRUTO OPERACIONAL</td>
+                    <td class="text-right text-green">${window.ui.formatCurrency(lucroBruto)}</td>
+                  </tr>
+                  <tr style="font-weight: 600;">
+                    <td>(-) DESPESAS OPERACIONAIS (Custos Fazenda)</td>
+                    <td class="text-right text-red">-${window.ui.formatCurrency(despesasTotal)}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Funcionários</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Funcionários'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Alimentação Geral</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Alimentação Geral'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Manutenção</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Manutenção'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Combustível</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Combustível'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Energia / Água</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Energia/Água'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Impostos / Taxas</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Impostos/Taxas'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Vacinas / Medicamentos Geral</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Vacinas/Medicamentos Geral'])}</td>
+                  </tr>
+                  <tr>
+                    <td class="row-indent">Outros Custos</td>
+                    <td class="text-right">${window.ui.formatCurrency(categoriesSum['Outros'])}</td>
+                  </tr>
+                  <tr class="row-bold" style="font-size: 15px; border-top: 2px solid #0f172a;">
+                    <td>(=) RESULTADO LÍQUIDO DO PERÍODO</td>
+                    <td class="text-right ${resultadoLiquido >= 0 ? 'text-green' : 'text-red'}">${window.ui.formatCurrency(resultadoLiquido)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Coluna Métricas -->
+            <div>
+              <h4 class="section-title">Métricas de Pesos & Operações</h4>
+              <table>
+                <tbody>
+                  <tr class="row-bold"><td colspan="2">Métricas de Compra / Entrada</td></tr>
+                  <tr>
+                    <td>Animais Comprados (Qtd)</td>
+                    <td class="text-right" style="font-weight: 600;">${compCount}</td>
+                  </tr>
+                  <tr>
+                    <td>Peso Médio de Entrada</td>
+                    <td class="text-right" style="font-weight: 600;">${avgWeightCompra > 0 ? `${avgWeightCompra.toFixed(1)} kg` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td>Preço Médio Pago por Cabeça</td>
+                    <td class="text-right" style="font-weight: 600;">${window.ui.formatCurrency(avgPriceCompraCabeca)}</td>
+                  </tr>
+                  <tr>
+                    <td>Preço Médio por kg (Compra)</td>
+                    <td class="text-right" style="font-weight: 600;">${avgPriceCompraKg > 0 ? `${window.ui.formatCurrency(avgPriceCompraKg)}/kg` : '-'}</td>
+                  </tr>
+
+                  <tr class="row-bold"><td colspan="2">Métricas de Venda / Saída</td></tr>
+                  <tr>
+                    <td>Animais Vendidos (Qtd)</td>
+                    <td class="text-right" style="font-weight: 600;">${vendCount}</td>
+                  </tr>
+                  <tr>
+                    <td>Peso Médio de Saída</td>
+                    <td class="text-right" style="font-weight: 600;">${avgWeightVenda > 0 ? `${avgWeightVenda.toFixed(1)} kg` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td>Preço Médio Recebido por Cabeça</td>
+                    <td class="text-right" style="font-weight: 600;">${window.ui.formatCurrency(avgPriceVendaCabeca)}</td>
+                  </tr>
+                  <tr>
+                    <td>Preço Médio por kg (Venda)</td>
+                    <td class="text-right" style="font-weight: 600;">${avgPriceVendaKg > 0 ? `${window.ui.formatCurrency(avgPriceVendaKg)}/kg` : '-'}</td>
+                  </tr>
+
+                  <tr class="row-bold"><td colspan="2">Desempenho Comercial & Ganho</td></tr>
+                  <tr>
+                    <td>Ganho Médio de Peso Vendido</td>
+                    <td class="text-right text-green">${avgGain !== 0 ? `${avgGain.toFixed(1)} kg` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td>Período Médio de Cocho/Pasto</td>
+                    <td class="text-right" style="font-weight: 600;">${avgDays > 0 ? `${Math.round(avgDays)} dias` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td>GMD Médio dos Vendidos</td>
+                    <td class="text-right text-green">${avgGMD > 0 ? `${avgGMD.toFixed(2)} kg/dia` : '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 BoiUni - Sistema de Controle de Rebanho Bovino.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      return;
+    }
+
     let title = '';
     let tableHeaders = '';
     let tableRows = '';
@@ -1001,14 +1712,15 @@ class AppController {
       `).join('');
     } else if (reportType === 'vendidos') {
       title = 'Relatório de Animais Vendidos';
-      tableHeaders = `<th>Data Venda</th><th>Código</th><th>Brinco</th><th>Comprador</th><th>Peso Venda</th><th>Valor Venda</th><th>Lucro Estimado</th>`;
+      tableHeaders = `<th>Data Venda</th><th>Código</th><th>Brinco</th><th>Comprador</th><th>Peso Venda</th><th>Custo Compra</th><th>Valor Venda</th><th>Lucro Estimado</th>`;
       
       tableRows = sales.map(s => {
         const animal = animals.find(a => a.id === s.animal_id) || { brinco: '-', codigo: '-' };
         const buyer = clients.find(c => c.id === s.comprador) || { nome: '-' };
         const p = purchases.find(pur => pur.animal_id === s.animal_id);
         const purchaseVal = p ? p.valor : 0;
-        const lucro = s.valor - purchaseVal;
+        const discountVal = s.desconto ? parseFloat(s.desconto) : 0;
+        const lucro = (s.valor - discountVal) - purchaseVal;
         
         return `
           <tr>
@@ -1017,6 +1729,7 @@ class AppController {
             <td>${animal.brinco}</td>
             <td>${buyer.nome}</td>
             <td>${s.peso_venda} kg</td>
+            <td>${window.ui.formatCurrency(purchaseVal)}</td>
             <td>${window.ui.formatCurrency(s.valor)}</td>
             <td>${window.ui.formatCurrency(lucro)}</td>
           </tr>
@@ -1146,7 +1859,11 @@ class AppController {
       return;
     }
 
-    const animal = window.db.getAnimals().find(a => a.id === sale.animal_id) || { brinco: '-', codigo: '-', nome: '-', raca: '-', categoria: '-' };
+    // Busca todas as vendas do mesmo grupo (se houver) ou apenas esta venda
+    const groupSales = sale.venda_grupo_id 
+      ? window.db.getSales().filter(s => s.venda_grupo_id === sale.venda_grupo_id) 
+      : [sale];
+
     const buyer = window.db.getClients().find(c => c.id === sale.comprador) || { nome: 'Não cadastrado', telefone: '-', cidade: '-' };
     const config = window.db.getConfiguracoes();
 
@@ -1158,12 +1875,27 @@ class AppController {
     const farmEmail = config.email || '-';
     const farmLocation = (config.municipio && config.estado) ? `${config.municipio} - ${config.estado}` : 'Localização não cadastrada';
 
-    const grossValue = sale.valor;
-    const discount = sale.desconto || 0;
+    const grossValue = groupSales.reduce((acc, s) => acc + s.valor, 0);
+    const discount = groupSales.reduce((acc, s) => acc + (s.desconto || 0), 0);
     const finalValue = grossValue - discount;
 
-    const receiptNo = String(sale.id).padStart(6, '0');
+    const receiptNo = String(sale.venda_grupo_id || sale.id).substring(0, 8);
     const dateFormatted = window.ui.formatDate(sale.data);
+
+    const rowsHtml = groupSales.map(s => {
+      const anim = window.db.getAnimals().find(a => a.id === s.animal_id) || { brinco: '-', codigo: '-', nome: '-', raca: '-', categoria: '-' };
+      return `
+        <tr>
+          <td>${anim.codigo}</td>
+          <td><strong>${anim.brinco}</strong></td>
+          <td>${anim.nome || '-'}</td>
+          <td>${anim.raca}</td>
+          <td>${anim.categoria}</td>
+          <td>${s.peso_venda} kg</td>
+          <td>${window.ui.formatCurrency(s.valor)}</td>
+        </tr>
+      `;
+    }).join('');
 
     const printWindow = window.open('', '_blank');
     const htmlContent = `
@@ -1383,17 +2115,11 @@ class AppController {
                 <th>Raça</th>
                 <th>Categoria</th>
                 <th>Peso Final</th>
+                <th>Valor</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>${animal.codigo}</td>
-                <td><strong>${animal.brinco}</strong></td>
-                <td>${animal.nome || '-'}</td>
-                <td>${animal.raca}</td>
-                <td>${animal.categoria}</td>
-                <td>${sale.peso_venda} kg</td>
-              </tr>
+              ${rowsHtml}
             </tbody>
           </table>
           
@@ -1416,7 +2142,7 @@ class AppController {
           
           <div class="declaration">
             Declaramos para os devidos fins que recebemos do Comprador acima identificado a importância líquida de 
-            <strong>${window.ui.formatCurrency(finalValue)}</strong> referente à venda do animal descrito neste recibo, 
+            <strong>${window.ui.formatCurrency(finalValue)}</strong> referente à venda do(s) animal(is) descrito(s) neste recibo, 
             dando-lhe por este instrumento plena e irrevogável quitação.
           </div>
           
