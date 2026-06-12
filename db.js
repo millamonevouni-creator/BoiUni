@@ -1067,6 +1067,35 @@ class LocalDB {
     }
   }
 
+  updateAgendaItem(item) {
+    const data = this.getAgenda();
+    const existing = data.find(i => i.id === parseInt(item.id));
+    if (existing) {
+      existing.titulo = item.titulo;
+      existing.data = item.data;
+      existing.tipo = item.tipo;
+      existing.descricao = item.descricao || '';
+      existing.animal_id = item.animal_id ? parseInt(item.animal_id) : null;
+      existing.recorrencia = item.recorrencia || 'Nenhuma';
+      existing.recorrencia_grupo_id = item.recorrencia_grupo_id || null;
+      this._set(DB_KEYS.AGENDA_MANEJO, data);
+
+      if (supabaseClient) {
+        supabaseClient.from('agenda_manejo').update({
+          titulo: existing.titulo,
+          data: existing.data,
+          tipo: existing.tipo,
+          descricao: existing.descricao,
+          animal_id: existing.animal_id,
+          recorrencia: existing.recorrencia,
+          recorrencia_grupo_id: existing.recorrencia_grupo_id
+        }).eq('id', existing.id).then(({ error }) => {
+          if (error) console.error("Erro ao atualizar compromisso no Supabase:", error);
+        });
+      }
+    }
+  }
+
   deleteAgendaItem(id) {
     let data = this.getAgenda();
     data = data.filter(i => i.id !== parseInt(id));

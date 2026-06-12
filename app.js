@@ -3141,6 +3141,11 @@ class AppController {
     const recorrenciaSelect = document.getElementById('agenda-recorrencia');
     if (recorrenciaSelect) {
       recorrenciaSelect.value = 'Nenhuma';
+      recorrenciaSelect.disabled = false;
+    }
+
+    if (window.lucide && window.lucide.createIcons) {
+      window.lucide.createIcons();
     }
     
     this.openModal('modal-agenda-form');
@@ -3160,55 +3165,75 @@ class AppController {
       return;
     }
 
-    if (recorrencia !== 'Nenhuma') {
-      const recorrenciaGrupoId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-      
-      const getRecurrenceDates = (startDateStr, freq) => {
-        const [year, month, day] = startDateStr.split('-').map(Number);
-        const dates = [startDateStr];
-        let step = 0;
-        let count = 0;
-        
-        if (freq === 'Mensal') { step = 1; count = 11; }
-        else if (freq === 'Trimestral') { step = 3; count = 3; }
-        else if (freq === 'Semestral') { step = 6; count = 1; }
-        else if (freq === 'Anual') { step = 12; count = 2; }
-        
-        for (let i = 1; i <= count; i++) {
-          const nextDate = new Date(year, month - 1, day);
-          nextDate.setMonth(nextDate.getMonth() + (i * step));
-          const y = nextDate.getFullYear();
-          const m = String(nextDate.getMonth() + 1).padStart(2, '0');
-          const d = String(nextDate.getDate()).padStart(2, '0');
-          dates.push(`${y}-${m}-${d}`);
-        }
-        return dates;
-      };
+    if (idVal) {
+      // Editing existing item (we update only this specific item)
+      const existing = window.db.getAgenda().find(e => e.id === parseInt(idVal));
+      const recorrenciaGrupoId = existing ? existing.recorrencia_grupo_id : null;
+      const originalRecorrencia = existing ? existing.recorrencia : 'Nenhuma';
 
-      const dates = getRecurrenceDates(data, recorrencia);
-      dates.forEach(d => {
-        window.db.addAgendaItem({
-          titulo,
-          data: d,
-          tipo,
-          animal_id: animalId ? parseInt(animalId) : null,
-          descricao,
-          recorrencia,
-          recorrencia_grupo_id: recorrenciaGrupoId
-        });
-      });
-      window.ui.showToast("Série de manejos recorrentes agendada com sucesso!");
-    } else {
-      window.db.addAgendaItem({
+      window.db.updateAgendaItem({
+        id: parseInt(idVal),
         titulo,
         data,
         tipo,
         animal_id: animalId ? parseInt(animalId) : null,
         descricao,
-        recorrencia: 'Nenhuma',
-        recorrencia_grupo_id: null
+        recorrencia: originalRecorrencia,
+        recorrencia_grupo_id: recorrenciaGrupoId
       });
-      window.ui.showToast("Manejo agendado com sucesso!");
+      window.ui.showToast("Manejo atualizado com sucesso!");
+    } else {
+      // Creating new items
+      if (recorrencia !== 'Nenhuma') {
+        const recorrenciaGrupoId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        
+        const getRecurrenceDates = (startDateStr, freq) => {
+          const [year, month, day] = startDateStr.split('-').map(Number);
+          const dates = [startDateStr];
+          let step = 0;
+          let count = 0;
+          
+          if (freq === 'Mensal') { step = 1; count = 11; }
+          else if (freq === 'Trimestral') { step = 3; count = 3; }
+          else if (freq === 'Semestral') { step = 6; count = 1; }
+          else if (freq === 'Anual') { step = 12; count = 2; }
+          
+          for (let i = 1; i <= count; i++) {
+            const nextDate = new Date(year, month - 1, day);
+            nextDate.setMonth(nextDate.getMonth() + (i * step));
+            const y = nextDate.getFullYear();
+            const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+            const d = String(nextDate.getDate()).padStart(2, '0');
+            dates.push(`${y}-${m}-${d}`);
+          }
+          return dates;
+        };
+
+        const dates = getRecurrenceDates(data, recorrencia);
+        dates.forEach(d => {
+          window.db.addAgendaItem({
+            titulo,
+            data: d,
+            tipo,
+            animal_id: animalId ? parseInt(animalId) : null,
+            descricao,
+            recorrencia,
+            recorrencia_grupo_id: recorrenciaGrupoId
+          });
+        });
+        window.ui.showToast("Série de manejos recorrentes agendada com sucesso!");
+      } else {
+        window.db.addAgendaItem({
+          titulo,
+          data,
+          tipo,
+          animal_id: animalId ? parseInt(animalId) : null,
+          descricao,
+          recorrencia: 'Nenhuma',
+          recorrencia_grupo_id: null
+        });
+        window.ui.showToast("Manejo agendado com sucesso!");
+      }
     }
 
     this.closeModal('modal-agenda-form');
@@ -3299,6 +3324,52 @@ class AppController {
         }
       }
     }
+  }
+
+  editAgendaItemFromDetails() {
+    const idVal = document.getElementById('agenda-detail-id').value;
+    if (!idVal) return;
+    
+    const allEvents = window.db.getAgenda() || [];
+    const event = allEvents.find(e => e.id === parseInt(idVal));
+    if (!event) return;
+    
+    this.closeModal('modal-agenda-details');
+    
+    // Setup modal form for editing
+    const form = document.getElementById('form-agenda');
+    if (form) form.reset();
+    
+    const modalTitle = document.getElementById('modal-agenda-title');
+    if (modalTitle) {
+      modalTitle.innerHTML = '<i class="lucide-edit"></i> Editar Manejo';
+    }
+    
+    document.getElementById('agenda-id').value = event.id;
+    document.getElementById('agenda-titulo').value = event.titulo;
+    document.getElementById('agenda-data').value = event.data;
+    document.getElementById('agenda-tipo').value = event.tipo;
+    document.getElementById('agenda-descricao').value = event.descricao || '';
+    
+    const animalSelect = document.getElementById('agenda-animal-id');
+    if (animalSelect) {
+      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+      animalSelect.innerHTML = '<option value="">Todo o Rebanho (Geral)</option>' +
+        activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'}</option>`).join('');
+      animalSelect.value = event.animal_id || '';
+    }
+    
+    const recorrenciaSelect = document.getElementById('agenda-recorrencia');
+    if (recorrenciaSelect) {
+      recorrenciaSelect.value = event.recorrencia || 'Nenhuma';
+      recorrenciaSelect.disabled = true; // Bloqueia alterações de recorrência na edição
+    }
+
+    if (window.lucide && window.lucide.createIcons) {
+      window.lucide.createIcons();
+    }
+    
+    this.openModal('modal-agenda-form');
   }
 
   toggleAgendaStatusFromDetails() {

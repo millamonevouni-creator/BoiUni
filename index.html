@@ -2179,8 +2179,9 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; width: 100%;">
-        <div>
+        <div style="display: flex; gap: 8px;">
           <button class="btn btn-danger btn-sm" id="btn-agenda-delete" onclick="window.app.deleteAgendaItemFromDetails()"><i class="lucide-trash-2" style="width:14px; height:14px; margin-right:4px;"></i> Excluir</button>
+          <button class="btn btn-secondary btn-sm" id="btn-agenda-edit" onclick="window.app.editAgendaItemFromDetails()"><i class="lucide-edit" style="width:14px; height:14px; margin-right:4px;"></i> Editar</button>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-secondary btn-sm" onclick="window.app.closeModal('modal-agenda-details')">Fechar</button>
