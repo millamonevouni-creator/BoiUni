@@ -2206,6 +2206,304 @@ class AppController {
     printWindow.document.close();
   }
 
+  printWeightReport() {
+    const periodType = document.getElementById('report-peso-periodo') ? document.getElementById('report-peso-periodo').value : 'Mensal';
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+    
+    let p1Start = '';
+    let p1End = '';
+    let p0Start = '';
+    let p0End = '';
+    let labelPeriodo = '';
+    
+    const formatDateObj = (dateObj) => {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
+    if (periodType === 'Mensal') {
+      // P1: This month (1st of month to today)
+      const firstDayP1 = new Date(currentYear, currentMonth, 1);
+      p1Start = formatDateObj(firstDayP1);
+      p1End = formatDateObj(now);
+      
+      // P0: Previous month (1st of prev month to last day of prev month)
+      const firstDayP0 = new Date(currentYear, currentMonth - 1, 1);
+      const lastDayP0 = new Date(currentYear, currentMonth, 0); // 0th day is last day of prev month
+      p0Start = formatDateObj(firstDayP0);
+      p0End = formatDateObj(lastDayP0);
+      
+      const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      const currentMonthLabel = meses[currentMonth];
+      const prevMonthLabel = meses[(currentMonth - 1 + 12) % 12];
+      labelPeriodo = `Período Mensal: ${currentMonthLabel}/${currentYear} vs ${prevMonthLabel}/${currentMonth === 0 ? currentYear - 1 : currentYear}`;
+      
+    } else if (periodType === 'Trimestral') {
+      const currentQuarter = Math.floor(currentMonth / 3) + 1;
+      
+      // P1: Current quarter
+      const firstDayP1 = new Date(currentYear, (currentQuarter - 1) * 3, 1);
+      p1Start = formatDateObj(firstDayP1);
+      p1End = formatDateObj(now);
+      
+      // P0: Previous quarter
+      const firstDayP0 = new Date(currentYear, (currentQuarter - 2) * 3, 1);
+      const lastDayP0 = new Date(currentYear, (currentQuarter - 1) * 3, 0);
+      p0Start = formatDateObj(firstDayP0);
+      p0End = formatDateObj(lastDayP0);
+      
+      labelPeriodo = `Período Trimestral: Q${currentQuarter}/${currentYear} vs Q${currentQuarter === 1 ? 4 : currentQuarter - 1}/${currentQuarter === 1 ? currentYear - 1 : currentYear}`;
+      
+    } else if (periodType === 'Semestral') {
+      const currentSemester = currentMonth < 6 ? 1 : 2;
+      
+      // P1: Current semester
+      const firstDayP1 = new Date(currentYear, currentSemester === 1 ? 0 : 6, 1);
+      p1Start = formatDateObj(firstDayP1);
+      p1End = formatDateObj(now);
+      
+      // P0: Previous semester
+      const firstDayP0 = new Date(currentYear, currentSemester === 1 ? -6 : 0, 1);
+      const lastDayP0 = new Date(currentYear, currentSemester === 1 ? 0 : 6, 0);
+      p0Start = formatDateObj(firstDayP0);
+      p0End = formatDateObj(lastDayP0);
+      
+      labelPeriodo = `Período Semestral: S${currentSemester}/${currentYear} vs S${currentSemester === 1 ? 2 : 1}/${currentSemester === 1 ? currentYear - 1 : currentYear}`;
+      
+    } else if (periodType === 'Anual') {
+      // P1: Current year (Jan 1st to today)
+      p1Start = `${currentYear}-01-01`;
+      p1End = formatDateObj(now);
+      
+      // P0: Previous year (Jan 1st to Dec 31st)
+      p0Start = `${currentYear - 1}-01-01`;
+      p0End = `${currentYear - 1}-12-31`;
+      
+      labelPeriodo = `Período Anual: Ano ${currentYear} vs Ano ${currentYear - 1}`;
+    }
+
+    const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+    
+    // Process weights for each animal
+    const reportData = activeAnimals.map(a => {
+      const weights = window.db.getAnimalWeights(a.id) || [];
+      
+      // W1: latest weight in P1
+      const w1Events = weights.filter(w => w.data >= p1Start && w.data <= p1End);
+      let w1 = null;
+      let w1Date = null;
+      if (w1Events.length > 0) {
+        w1 = w1Events[w1Events.length - 1].peso;
+        w1Date = w1Events[w1Events.length - 1].data;
+      } else {
+        w1 = a.peso_atual;
+        w1Date = formatDateObj(now);
+      }
+
+      // W0: latest weight in P0
+      const w0Events = weights.filter(w => w.data >= p0Start && w.data <= p0End);
+      let w0 = null;
+      let w0Date = null;
+      if (w0Events.length > 0) {
+        w0 = w0Events[w0Events.length - 1].peso;
+        w0Date = w0Events[w0Events.length - 1].data;
+      } else {
+        // Look for latest before p1Start
+        const beforeEvents = weights.filter(w => w.data < p1Start);
+        if (beforeEvents.length > 0) {
+          w0 = beforeEvents[beforeEvents.length - 1].peso;
+          w0Date = beforeEvents[beforeEvents.length - 1].data;
+        } else if (weights.length > 0) {
+          w0 = weights[0].peso;
+          w0Date = weights[0].data;
+        } else {
+          w0 = w1;
+          w0Date = w1Date;
+        }
+      }
+
+      const diff = w1 - w0;
+      let days = 0;
+      let gmd = 0;
+      if (w1Date && w0Date && w1Date !== w0Date) {
+        const d1 = new Date(w1Date + 'T00:00:00');
+        const d0 = new Date(w0Date + 'T00:00:00');
+        const diffTime = Math.abs(d1 - d0);
+        days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 0;
+        if (days > 0) {
+          gmd = diff / days;
+        }
+      }
+
+      return {
+        id: a.id,
+        brinco: a.brinco,
+        codigo: a.codigo,
+        nome: a.nome,
+        categoria: a.categoria,
+        raca: a.raca,
+        w0,
+        w0Date,
+        w1,
+        w1Date,
+        diff,
+        days,
+        gmd
+      };
+    });
+
+    // Sort reportData by brinco ascending
+    reportData.sort((a, b) => {
+      const brincoA = parseInt(a.brinco) || 0;
+      const brincoB = parseInt(b.brinco) || 0;
+      return brincoA - brincoB;
+    });
+
+    const totalAnimals = reportData.length;
+    const totalGain = reportData.reduce((sum, item) => sum + item.diff, 0);
+    const avgGain = totalAnimals > 0 ? (totalGain / totalAnimals) : 0;
+    
+    const gmdItems = reportData.filter(item => item.days > 0);
+    const avgGmd = gmdItems.length > 0 
+      ? (gmdItems.reduce((sum, item) => sum + item.gmd, 0) / gmdItems.length) 
+      : 0;
+
+    const positiveGainCount = reportData.filter(item => item.diff > 0).length;
+    const positivePct = totalAnimals > 0 ? Math.round((positiveGainCount / totalAnimals) * 100) : 0;
+
+    const tableRows = reportData.map(r => {
+      const formattedW0Date = r.w0Date !== r.w1Date ? window.ui.formatDate(r.w0Date) : '-';
+      const formattedW1Date = window.ui.formatDate(r.w1Date);
+      const diffClass = r.diff > 0 ? 'text-green' : (r.diff < 0 ? 'text-red' : '');
+      const diffSign = r.diff > 0 ? '+' : '';
+      const formattedGmd = r.days > 0 ? `${r.gmd.toFixed(2)} kg/dia` : '-';
+      
+      return `
+        <tr>
+          <td><strong>${r.brinco}</strong></td>
+          <td>${r.codigo}</td>
+          <td>${r.categoria}</td>
+          <td>${r.raca}</td>
+          <td>${r.w0.toFixed(1)} kg <span style="font-size: 11px; color: #64748b;">(${formattedW0Date})</span></td>
+          <td>${r.w1.toFixed(1)} kg <span style="font-size: 11px; color: #64748b;">(${formattedW1Date})</span></td>
+          <td style="font-weight: 600;">${r.days} d</td>
+          <td class="${diffClass}" style="font-weight: bold;">${diffSign}${r.diff.toFixed(1)} kg</td>
+          <td class="${diffClass}" style="font-weight: bold;">${formattedGmd}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Controle Comparativo de Pesagem - BoiUni</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #15803d; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { margin: 0; color: #15803d; font-size: 26px; }
+          .header p { margin: 5px 0 0 0; color: #64748b; font-size: 14px; }
+          
+          .section-title { font-size: 16px; font-weight: bold; color: #15803d; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; }
+          
+          .summary-box { background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #15803d; }
+          .summary-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; color: #0f172a; }
+          .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+          .summary-item { display: flex; flex-direction: column; }
+          .summary-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+          .summary-value { font-size: 18px; font-weight: bold; }
+          
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th { background-color: #f1f5f9; color: #0f172a; text-align: left; padding: 12px; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+          td { padding: 12px; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
+          tr:hover { background-color: #f8fafc; }
+          .text-green { color: #166534; }
+          .text-red { color: #991b1b; }
+          
+          .footer { margin-top: 45px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+          @media print {
+            .no-print { display: none; }
+            body { padding: 10px; }
+          }
+          .btn-print { background-color: #15803d; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>BoiUni - Gestão Agropecuária</h1>
+            <p>Relatório de Controle e Evolução de Pesagem</p>
+          </div>
+          <div class="no-print">
+            <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
+          </div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+          <span style="font-size: 14px; font-weight: bold; color: #0f172a; background-color: #e2e8f0; padding: 6px 12px; border-radius: 6px;">${labelPeriodo}</span>
+          <span style="font-size: 13px; color: #64748b;">Relatório gerado em: ${new Date().toLocaleString('pt-BR')}</span>
+        </div>
+        
+        <div class="summary-box">
+          <div class="summary-title">Resumo do Desempenho do Rebanho</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="summary-label">Animais Analisados</span>
+              <span class="summary-value">${totalAnimals}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Ganho Médio Acumulado</span>
+              <span class="summary-value ${avgGain >= 0 ? 'text-green' : 'text-red'}">${avgGain >= 0 ? '+' : ''}${avgGain.toFixed(1)} kg</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">GMD Médio Geral</span>
+              <span class="summary-value ${avgGmd >= 0 ? 'text-green' : 'text-red'}">${avgGmd.toFixed(2)} kg/dia</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Desempenho Positivo</span>
+              <span class="summary-value text-green">${positiveGainCount} anim. (${positivePct}%)</span>
+            </div>
+          </div>
+        </div>
+
+        <h4 class="section-title">Detalhamento Individual da Evolução de Pesos</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Brinco</th>
+              <th>Código</th>
+              <th>Categoria</th>
+              <th>Raça</th>
+              <th>Peso Anterior</th>
+              <th>Peso Período</th>
+              <th>Intervalo</th>
+              <th>Diferença</th>
+              <th>GMD</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="9" style="text-align: center; color: #64748b;">Nenhum animal ativo cadastrado no rebanho.</td></tr>'}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>© 2026 BoiUni - Sistema de Controle de Rebanho Bovino.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  }
+
   printReceipt(saleId) {
     const sale = window.db.getSales().find(s => s.id === parseInt(saleId));
     if (!sale) {

@@ -1365,6 +1365,26 @@
             </button>
           </div>
 
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-scale"></i>
+              <h4>Controle Comparativo de Peso</h4>
+            </div>
+            <p class="report-desc">Relatório periódico de ganho de peso e GMD de todos os animais ativos, comparando o período atual com o período anterior.</p>
+            <div style="margin-top: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+              <label for="report-peso-periodo" style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Período de Comparação</label>
+              <select id="report-peso-periodo" style="width: 100%; padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-card); color: var(--text-main); font-size: 13px;">
+                <option value="Mensal">Mensal (Este Mês vs Anterior)</option>
+                <option value="Trimestral">Trimestral (Este Trimestre vs Anterior)</option>
+                <option value="Semestral">Semestral (Este Semestre vs Anterior)</option>
+                <option value="Anual">Anual (Este Ano vs Anterior)</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printWeightReport()">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
         </div>
       </div>
 
