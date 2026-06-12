@@ -2166,6 +2166,80 @@ class AppController {
           </tr>
         `;
       }).join('');
+    } else if (reportType === 'carencia') {
+      title = 'Relatório de Carência Sanitária e Controle de Abate';
+      tableHeaders = `<th>Código</th><th>Brinco</th><th>Categoria</th><th>Peso Atual</th><th>Medicamento</th><th>Data Aplicação</th><th>Carência (Dias)</th><th>Liberação Planejada</th><th>Status / Restante</th>`;
+      
+      const expenses = window.db.getExpenses() || [];
+      const medicamentos = window.db.getMedicamentos() || [];
+      const active = animals.filter(a => a.status === 'Ativo');
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      const carenciasList = [];
+      active.forEach(a => {
+        const animalExpenses = expenses.filter(e => e.animal_id === a.id && (e.tipo === 'Vacina' || e.tipo === 'Medicamento'));
+        
+        animalExpenses.forEach(e => {
+          const medConfig = medicamentos.find(m => m.nome.trim().toLowerCase() === (e.descricao || '').trim().toLowerCase());
+          if (medConfig && medConfig.carencia_dias > 0) {
+            const [year, month, day] = e.data.split('-').map(Number);
+            const appDate = new Date(year, month - 1, day);
+            const endDate = new Date(appDate);
+            endDate.setDate(endDate.getDate() + medConfig.carencia_dias);
+            
+            const diffTime = endDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            carenciasList.push({
+              animal: a,
+              medNome: e.descricao,
+              dataAplicacao: e.data,
+              diasCarencia: medConfig.carencia_dias,
+              liberacao: endDate.toISOString().split('T')[0],
+              diasRestantes: diffDays >= 0 ? diffDays : 0,
+              isActive: endDate >= today
+            });
+          }
+        });
+      });
+      
+      // Ordena: carências ativas primeiro (por dias restantes decrescente), depois as inativas pela data de liberação decrescente
+      carenciasList.sort((a, b) => {
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        if (a.isActive && b.isActive) return b.diasRestantes - a.diasRestantes;
+        return new Date(b.liberacao) - new Date(a.liberacao);
+      });
+      
+      if (carenciasList.length === 0) {
+        tableRows = `
+          <tr>
+            <td colspan="9" style="text-align: center; color: #166534; font-weight: bold; padding: 25px 0;">
+              ✓ Nenhum registro sanitário sob período de carência. Todo o rebanho está liberado para abate/comercialização.
+            </td>
+          </tr>
+        `;
+      } else {
+        tableRows = carenciasList.map(item => {
+          const statusText = item.isActive ? `⚠️ Carência (${item.diasRestantes} dias)` : `✓ Liberado`;
+          const statusStyle = item.isActive ? 'color: #b45309; font-weight: bold;' : 'color: #166534; font-weight: bold;';
+          
+          return `
+            <tr>
+              <td>${window.ui.escapeHTML(item.animal.codigo)}</td>
+              <td><strong>${window.ui.escapeHTML(item.animal.brinco)}</strong></td>
+              <td>${window.ui.escapeHTML(item.animal.categoria)}</td>
+              <td>${item.animal.peso_atual} kg</td>
+              <td>${window.ui.escapeHTML(item.medNome)}</td>
+              <td>${window.ui.formatDate(item.dataAplicacao)}</td>
+              <td>${item.diasCarencia} dias</td>
+              <td>${window.ui.formatDate(item.liberacao)}</td>
+              <td style="${statusStyle}">${statusText}</td>
+            </tr>
+          `;
+        }).join('');
+      }
     }
 
     const htmlContent = `
