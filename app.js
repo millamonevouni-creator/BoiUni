@@ -314,6 +314,13 @@ class AppController {
       });
     }
 
+    const saleDateInput = document.getElementById('sale-data');
+    if (saleDateInput) {
+      saleDateInput.addEventListener('change', () => {
+        this.updateSaleSelectedSummary();
+      });
+    }
+
     // Submissão de Formulários
     this.bindFormSubmit('form-auth', (data) => this.handleAuthSubmit(data));
     this.bindFormSubmit('form-animal', (data) => this.handleAnimalSubmit(data));
@@ -836,6 +843,7 @@ class AppController {
     if (checkedBoxes.length === 0) {
       if (summary) summary.textContent = 'Nenhum animal selecionado.';
       if (pesoInput) pesoInput.value = '';
+      this.checkSalesCarenciaWarnings();
       return;
     }
 
@@ -849,6 +857,119 @@ class AppController {
     if (pesoInput) {
       pesoInput.value = totalPeso.toFixed(1);
     }
+
+    this.checkSalesCarenciaWarnings();
+  }
+
+  // Verifica carência sanitária dos animais selecionados para venda
+  checkSalesCarenciaWarnings() {
+    const checkedBoxes = Array.from(document.querySelectorAll('.sale-animal-checkbox:checked'));
+    const warningContainer = document.getElementById('sale-carencia-warning');
+    const warningList = document.getElementById('sale-carencia-list');
+    const saleDateInput = document.getElementById('sale-data');
+
+    if (!warningContainer || !warningList) return;
+
+    if (checkedBoxes.length === 0) {
+      warningContainer.classList.add('hidden');
+      warningList.innerHTML = '';
+      return;
+    }
+
+    // Determina a data de venda a ser usada para o cálculo
+    const saleDateStr = (saleDateInput && saleDateInput.value) || new Date().toISOString().split('T')[0];
+    const [sYear, sMonth, sDay] = saleDateStr.split('-').map(Number);
+    const saleDate = new Date(sYear, sMonth - 1, sDay);
+
+    const carenciasAtivas = [];
+    const medicamentos = window.db.getMedicamentos();
+
+    checkedBoxes.forEach(cb => {
+      const animalId = parseInt(cb.value);
+      const animal = window.db.getAnimal(animalId);
+      if (!animal) return;
+
+      const expenses = window.db.getAnimalExpenses(animalId) || [];
+      const sanitaryExpenses = expenses.filter(e => e.tipo === 'Vacina' || e.tipo === 'Medicamento');
+
+      sanitaryExpenses.forEach(e => {
+        const medConfig = medicamentos.find(m => m.nome.trim().toLowerCase() === (e.descricao || '').trim().toLowerCase());
+        if (medConfig && medConfig.carencia_dias > 0) {
+          const [year, month, day] = e.data.split('-').map(Number);
+          const appDate = new Date(year, month - 1, day);
+          const endDate = new Date(appDate);
+          endDate.setDate(endDate.getDate() + medConfig.carencia_dias);
+
+          if (endDate >= saleDate) {
+            // Calcula dias restantes
+            const diffTime = endDate - saleDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            carenciasAtivas.push({
+              brinco: animal.brinco,
+              nome: animal.nome || 'Sem Nome',
+              medicamento: e.descricao || e.tipo,
+              dataLiberacao: endDate,
+              diasRestantes: diffDays
+            });
+          }
+        }
+      });
+    });
+
+    if (carenciasAtivas.length > 0) {
+      warningList.innerHTML = carenciasAtivas.map(c => {
+        // Formata data de liberação dd/mm/aaaa
+        const dayStr = String(c.dataLiberacao.getDate()).padStart(2, '0');
+        const monthStr = String(c.dataLiberacao.getMonth() + 1).padStart(2, '0');
+        const yearStr = c.dataLiberacao.getFullYear();
+        const formattedDate = `${dayStr}/${monthStr}/${yearStr}`;
+
+        return `<li>
+          Animal <strong>Brinco ${c.brinco}</strong> (${c.nome}) está sob carência do medicamento <strong>${c.medicamento}</strong>. 
+          Liberação em: <strong>${formattedDate}</strong> (${c.diasRestantes} dia(s) restante(s)).
+        </li>`;
+      }).join('');
+      warningContainer.classList.remove('hidden');
+    } else {
+      warningList.innerHTML = '';
+      warningContainer.classList.add('hidden');
+    }
+  }
+
+  // Abertura do modal de aplicação de medicamento a partir do perfil
+  openApplyMedicamentoModal() {
+    const animalId = this.currentAnimalDetailId || (window.ui && window.ui.currentAnimalDetailId);
+    if (!animalId) return;
+
+    // Prefill form
+    const animalIdInput = document.getElementById('expense-animal-id');
+    if (animalIdInput) animalIdInput.value = animalId;
+
+    const tipoSelect = document.getElementById('expense-tipo');
+    if (tipoSelect) tipoSelect.value = 'Vacina';
+
+    const descInput = document.getElementById('expense-descricao');
+    if (descInput) descInput.value = '';
+
+    const valorInput = document.getElementById('expense-valor');
+    if (valorInput) valorInput.value = '';
+
+    const dateInput = document.getElementById('expense-data');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    // Popula o datalist com medicamentos cadastrados nas configurações
+    this.populateMedicamentosDatalist();
+
+    this.openModal('modal-expense-form');
+  }
+
+  // Popula datalist de medicamentos para autocomplete
+  populateMedicamentosDatalist() {
+    const datalist = document.getElementById('medicamentos-datalist');
+    if (!datalist) return;
+    const medicamentos = window.db.getMedicamentos();
+    datalist.innerHTML = medicamentos.map(m => `<option value="${m.nome}"></option>`).join('');
   }
 
   // Cadastro de Clientes (Comprador/Fornecedor)
@@ -1001,6 +1122,15 @@ class AppController {
   // Registrar venda de animal específico ou genérico
   openSaleModal(animalId = null) {
     this.prepareSaleModal(animalId);
+    
+    const dateInput = document.getElementById('sale-data');
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Forçar recálculo das carências
+    this.updateSaleSelectedSummary();
+
     this.openModal('modal-sale-form');
   }
 
@@ -1318,6 +1448,7 @@ class AppController {
       if (el) el.value = val;
     }
     window.ui.renderRacasConfig();
+    window.ui.renderMedicamentosConfig();
   }
 
   async handleConfiguracoesSubmit(data) {
@@ -2675,6 +2806,44 @@ class AppController {
       window.db.deleteRaca(id);
       window.ui.renderRacasConfig();
       window.ui.showToast('Raça excluída.');
+    }
+  }
+
+  handleAddMedicamento() {
+    const nomeInput = document.getElementById('config-medicamento-nome');
+    const carenciaInput = document.getElementById('config-medicamento-carencia');
+    if (!nomeInput || !carenciaInput) return;
+
+    const nome = nomeInput.value.trim();
+    const carencia_dias = parseInt(carenciaInput.value) || 0;
+
+    if (!nome) {
+      window.ui.showToast('Digite o nome do medicamento/vacina.', 'error');
+      return;
+    }
+
+    if (carencia_dias < 0) {
+      window.ui.showToast('Os dias de carência não podem ser negativos.', 'error');
+      return;
+    }
+
+    const added = window.db.addMedicamento({ nome, carencia_dias });
+    if (!added) {
+      window.ui.showToast('Este medicamento já está cadastrado.', 'error');
+      return;
+    }
+
+    nomeInput.value = '';
+    carenciaInput.value = '';
+    window.ui.renderMedicamentosConfig();
+    window.ui.showToast('Medicamento adicionado com sucesso!');
+  }
+
+  handleDeleteMedicamento(id) {
+    if (confirm('Tem certeza de que deseja excluir este medicamento? Isso não apagará os históricos de aplicação já salvos.')) {
+      window.db.deleteMedicamento(id);
+      window.ui.renderMedicamentosConfig();
+      window.ui.showToast('Medicamento excluído.');
     }
   }
 }

@@ -1046,6 +1046,9 @@ class UserInterface {
       chartDiv.classList.add('hidden');
     }
 
+    // Renderiza o histórico sanitário e carência
+    this.renderAnimalSanitaryHistory(animal.id);
+
     if (window.lucide) {
       window.lucide.createIcons();
     }
@@ -1445,6 +1448,83 @@ class UserInterface {
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${r.nome}</span>
         <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteRaca(${r.id})" title="Excluir Raça" style="padding: 2px;">
+          <i class="lucide-trash-2" style="width: 14px; height: 14px;"></i>
+        </button>
+      </div>
+    `).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  renderAnimalSanitaryHistory(animalId) {
+    const tbody = document.getElementById('profile-sanitary-tbody');
+    if (!tbody) return;
+
+    const expenses = window.db.getAnimalExpenses(animalId) || [];
+    // Filtra apenas despesas do tipo Vacina ou Medicamento
+    const sanitaryExpenses = expenses.filter(e => e.tipo === 'Vacina' || e.tipo === 'Medicamento');
+
+    if (sanitaryExpenses.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 15px 0;">Nenhum registro sanitário.</td></tr>`;
+      return;
+    }
+
+    const medicamentos = window.db.getMedicamentos();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    tbody.innerHTML = sanitaryExpenses.map(e => {
+      const medConfig = medicamentos.find(m => m.nome.trim().toLowerCase() === (e.descricao || '').trim().toLowerCase());
+      
+      let statusHtml = '<span class="badge badge-success">✓ Liberado</span>';
+      
+      if (medConfig && medConfig.carencia_dias > 0) {
+        const [year, month, day] = e.data.split('-').map(Number);
+        const appDate = new Date(year, month - 1, day);
+        const endDate = new Date(appDate);
+        endDate.setDate(endDate.getDate() + medConfig.carencia_dias);
+        
+        if (endDate >= today) {
+          const diffTime = endDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const dateStr = endDate.toISOString().split('T')[0];
+          statusHtml = `<span class="badge badge-warning" title="Carência até ${this.formatDate(dateStr)}">⚠️ Carência (${diffDays}d)</span>`;
+        }
+      }
+
+      return `
+        <tr>
+          <td>${this.formatDate(e.data)}</td>
+          <td>
+            <strong>${e.descricao || e.tipo}</strong>
+            ${medConfig ? `<br><small style="color: var(--text-muted);">${medConfig.carencia_dias} dias de carência</small>` : ''}
+          </td>
+          <td>${statusHtml}</td>
+        </tr>
+      `;
+    }).reverse().join('');
+  }
+
+  renderMedicamentosConfig() {
+    const listContainer = document.getElementById('config-medicamentos-list');
+    if (!listContainer) return;
+
+    const medicamentos = window.db.getMedicamentos();
+
+    if (medicamentos.length === 0) {
+      listContainer.innerHTML = `<p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 10px 0;">Nenhum medicamento cadastrado.</p>`;
+      return;
+    }
+
+    listContainer.innerHTML = medicamentos.map(m => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${m.nome}</span>
+          <span style="font-size: 11px; color: var(--text-muted);">${m.carencia_dias} ${m.carencia_dias === 1 ? 'dia' : 'dias'} de carência</span>
+        </div>
+        <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteMedicamento(${m.id})" title="Excluir Medicamento" style="padding: 2px;">
           <i class="lucide-trash-2" style="width: 14px; height: 14px;"></i>
         </button>
       </div>

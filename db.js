@@ -10,7 +10,8 @@ const DB_KEYS = {
   CONFIGURACOES: 'boiuni_configuracoes',
   DESPESAS: 'boiuni_despesas',
   CUSTOS_FAZENDA: 'boiuni_custos_fazenda',
-  RACAS: 'boiuni_racas'
+  RACAS: 'boiuni_racas',
+  MEDICAMENTOS: 'boiuni_medicamentos'
 };
 
 // Configuração Supabase
@@ -33,6 +34,13 @@ const DEFAULT_RACAS = [
   { id: 4, nome: 'Guzerá' },
   { id: 5, nome: 'Senepol' },
   { id: 6, nome: 'Cruzamento Industrial' }
+];
+
+const DEFAULT_MEDICAMENTOS = [
+  { id: 1, nome: 'Vacina Aftosa', carencia_dias: 0 },
+  { id: 2, nome: 'Ivermectina 1%', carencia_dias: 35 },
+  { id: 3, nome: 'Vermífugo Oral', carencia_dias: 14 },
+  { id: 4, nome: 'Antibiótico Comum', carencia_dias: 28 }
 ];
 
 const MOCK_CLIENTES = [
@@ -124,6 +132,9 @@ class LocalDB {
     if (!localStorage.getItem(DB_KEYS.RACAS)) {
       localStorage.setItem(DB_KEYS.RACAS, JSON.stringify(DEFAULT_RACAS));
     }
+    if (!localStorage.getItem(DB_KEYS.MEDICAMENTOS)) {
+      localStorage.setItem(DB_KEYS.MEDICAMENTOS, JSON.stringify(DEFAULT_MEDICAMENTOS));
+    }
 
     // Sincroniza em segundo plano se o usuário já estiver logado
     this.getCurrentSession().then(session => {
@@ -198,6 +209,7 @@ class LocalDB {
     await supabaseClient.from('compras').delete().eq('user_id', uId);
     await supabaseClient.from('pesagens').delete().eq('user_id', uId);
     // Depois as tabelas principais
+    await supabaseClient.from('medicamentos').delete().eq('user_id', uId);
     await supabaseClient.from('racas').delete().eq('user_id', uId);
     await supabaseClient.from('animais').delete().eq('user_id', uId);
     await supabaseClient.from('clientes').delete().eq('user_id', uId);
@@ -231,7 +243,7 @@ class LocalDB {
     console.log("Sincronizando rebanho do Supabase...");
     try {
       // Busca tabelas do usuário autenticado (RLS garante o isolamento)
-      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas] = await Promise.all([
+      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas, rMedicamentos] = await Promise.all([
         supabaseClient.from('clientes').select('*'),
         supabaseClient.from('animais').select('*').order('id', { ascending: true }),
         supabaseClient.from('pesagens').select('*'),
@@ -241,7 +253,8 @@ class LocalDB {
         supabaseClient.from('configuracoes').select('*').maybeSingle(),
         supabaseClient.from('despesas').select('*'),
         supabaseClient.from('custos_fazenda').select('*'),
-        supabaseClient.from('racas').select('*')
+        supabaseClient.from('racas').select('*'),
+        supabaseClient.from('medicamentos').select('*')
       ]);
 
       if (rClientes.error) throw rClientes.error;
@@ -254,6 +267,7 @@ class LocalDB {
       if (rDespesas.error) throw rDespesas.error;
       if (rCustosFazenda.error) throw rCustosFazenda.error;
       if (rRacas.error) throw rRacas.error;
+      if (rMedicamentos.error) throw rMedicamentos.error;
 
       // Salva no localStorage local
       this._set(DB_KEYS.CLIENTES, rClientes.data);
@@ -266,6 +280,7 @@ class LocalDB {
       this._set(DB_KEYS.DESPESAS, rDespesas.data);
       this._set(DB_KEYS.CUSTOS_FAZENDA, rCustosFazenda.data);
       this._set(DB_KEYS.RACAS, rRacas.data);
+      this._set(DB_KEYS.MEDICAMENTOS, rMedicamentos.data);
 
       // Se todas as tabelas vieram vazias, apenas registra no console
       if (rAnimais.data.length === 0 && rClientes.data.length === 0) {
@@ -898,6 +913,53 @@ class LocalDB {
     }
   }
 
+  // --- MEDICAMENTOS ---
+  getMedicamentos() {
+    return this._get(DB_KEYS.MEDICAMENTOS) || [];
+  }
+
+  addMedicamento(med) {
+    const data = this.getMedicamentos();
+    const cleanNome = med.nome.trim();
+    if (!cleanNome) return null;
+
+    const exists = data.some(r => r.nome.toLowerCase() === cleanNome.toLowerCase());
+    if (exists) return null;
+
+    const newMed = {
+      id: this._nextId(DB_KEYS.MEDICAMENTOS),
+      nome: cleanNome,
+      carencia_dias: parseInt(med.carencia_dias) || 0
+    };
+    data.push(newMed);
+    this._set(DB_KEYS.MEDICAMENTOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('medicamentos').insert({
+        id: newMed.id,
+        nome: newMed.nome,
+        carencia_dias: newMed.carencia_dias
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar medicamento no Supabase:", error);
+      });
+    }
+
+    return newMed;
+  }
+
+  deleteMedicamento(id) {
+    let data = this.getMedicamentos();
+    data = data.filter(m => m.id !== parseInt(id));
+    this._set(DB_KEYS.MEDICAMENTOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('medicamentos').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar medicamento no Supabase:", error);
+        });
+    }
+  }
+
   // --- EXPORTAR / IMPORTAR BACKUP ---
   exportData() {
     const backup = {
@@ -910,7 +972,8 @@ class LocalDB {
       configuracoes: this.getConfiguracoes(),
       despesas: this.getExpenses(),
       custos_fazenda: this.getPropertyCosts(),
-      racas: this.getRacas()
+      racas: this.getRacas(),
+      medicamentos: this.getMedicamentos()
     };
     return JSON.stringify(backup, null, 2);
   }
@@ -928,6 +991,7 @@ class LocalDB {
       if (data.despesas && Array.isArray(data.despesas)) this._set(DB_KEYS.DESPESAS, data.despesas);
       if (data.custos_fazenda && Array.isArray(data.custos_fazenda)) this._set(DB_KEYS.CUSTOS_FAZENDA, data.custos_fazenda);
       if (data.racas && Array.isArray(data.racas)) this._set(DB_KEYS.RACAS, data.racas);
+      if (data.medicamentos && Array.isArray(data.medicamentos)) this._set(DB_KEYS.MEDICAMENTOS, data.medicamentos);
       
       if (supabaseClient) {
         this.pushAllToSupabase(data);
@@ -957,7 +1021,8 @@ class LocalDB {
         supabaseClient.from('animais').delete().neq('id', 0),
         supabaseClient.from('clientes').delete().neq('id', 0),
         supabaseClient.from('custos_fazenda').delete().neq('id', 0),
-        supabaseClient.from('racas').delete().neq('id', 0)
+        supabaseClient.from('racas').delete().neq('id', 0),
+        supabaseClient.from('medicamentos').delete().neq('id', 0)
       ]);
 
       // Insere na ordem certa com user_id explícito se necessário (ou defaults)
@@ -1003,6 +1068,9 @@ class LocalDB {
       }
       if (data.racas && data.racas.length > 0) {
         await supabaseClient.from('racas').insert(data.racas.map(r => ({ ...r, user_id: uId })));
+      }
+      if (data.medicamentos && data.medicamentos.length > 0) {
+        await supabaseClient.from('medicamentos').insert(data.medicamentos.map(m => ({ ...m, user_id: uId })));
       }
 
       console.log("Semente de dados gravada com sucesso no Supabase.");

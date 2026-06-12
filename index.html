@@ -1429,6 +1429,24 @@
               </div>
             </div>
 
+            <!-- Gerenciar Medicamentos -->
+            <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
+              <h3><i class="lucide-pill"></i> Cadastro de Medicamentos</h3>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+                Configure os medicamentos/vacinas e seus dias de carência recomendados.
+              </p>
+              <form id="form-config-medicamento" style="display: flex; flex-direction: column; gap: 10px;" onsubmit="event.preventDefault(); window.app.handleAddMedicamento();">
+                <input type="text" id="config-medicamento-nome" placeholder="Medicamento/Vacina (Ex: Vacina Aftosa)" required style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="number" id="config-medicamento-carencia" placeholder="Dias de carência" min="0" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                  <button type="submit" class="btn btn-primary btn-sm" style="height: 36px; padding: 0 16px;">Adicionar</button>
+                </div>
+              </form>
+              <div id="config-medicamentos-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
+                <!-- Lista de medicamentos populada dinamicamente -->
+              </div>
+            </div>
+
             <!-- Backup e Manutenção -->
             <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
               <h3><i class="lucide-database"></i> Manutenção</h3>
@@ -1630,6 +1648,14 @@
               <div id="sale-selected-summary" style="margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
                 Nenhum animal selecionado.
               </div>
+              <div id="sale-carencia-warning" class="hidden" style="background-color: var(--warning-light); padding: 12px 18px; border-radius: var(--radius-sm); margin-top: 10px; border-left: 4px solid var(--warning);">
+                <p style="font-size: 13px; font-weight: 700; margin: 0 0 6px 0; color: var(--warning);">
+                  ⚠️ Atenção: Animais em Período de Carência Sanitária!
+                </p>
+                <ul id="sale-carencia-list" style="font-size: 12.5px; padding-left: 20px; margin: 0; line-height: 1.4; color: var(--text-main);">
+                  <!-- Lista de animais com carência ativa -->
+                </ul>
+              </div>
             </div>
             
             <div class="form-group">
@@ -1721,6 +1747,27 @@
             <h4 style="margin-bottom: 12px; font-weight: 700; color: var(--primary);">Ficha Técnica</h4>
             <div class="animal-info-list" id="profile-info-details">
               <!-- Injetado dinamicamente -->
+            </div>
+
+            <h4 style="margin-top: 24px; margin-bottom: 12px; font-weight: 700; color: var(--primary); display: flex; justify-content: space-between; align-items: center;">
+              Controle Sanitário
+              <button class="btn btn-primary btn-xs" onclick="window.app.openApplyMedicamentoModal()" style="padding: 4px 8px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                <i class="lucide-plus" style="width: 12px; height: 12px;"></i> Aplicar
+              </button>
+            </h4>
+            <div class="table-responsive" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+              <table class="boi-table" style="font-size: 13px; margin: 0;">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Medicamento</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="profile-sanitary-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -1824,7 +1871,8 @@
             </div>
             <div class="form-group">
               <label for="expense-descricao">Descrição (Opcional)</label>
-              <input type="text" id="expense-descricao" name="descricao" placeholder="Ex: Vacina Aftosa">
+              <input type="text" id="expense-descricao" name="descricao" placeholder="Ex: Vacina Aftosa" list="medicamentos-datalist">
+              <datalist id="medicamentos-datalist"></datalist>
             </div>
             <div class="form-group">
               <label for="expense-valor">Valor (R$) *</label>
