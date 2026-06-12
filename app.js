@@ -1569,18 +1569,32 @@ class AppController {
         if (e.animal_id) {
           const animal = window.db.getAnimal(e.animal_id);
           if (animal) {
-            animalText = `Brinco ${animal.brinco} ${animal.nome ? `- ${animal.nome}` : ''}`;
+            animalText = `Brinco ${window.ui.escapeHTML(animal.brinco)} ${animal.nome ? `- ${window.ui.escapeHTML(animal.nome)}` : ''}`;
           } else {
             animalText = `ID: ${e.animal_id}`;
           }
+        } else if (e.compra_grupo_id) {
+          const purchases = window.db.getPurchases() || [];
+          const clients = window.db.getClients() || [];
+          const groupPurchases = purchases.filter(p => p.compra_grupo_id === e.compra_grupo_id);
+          const samplePurchase = groupPurchases[0];
+          const supplier = samplePurchase ? (clients.find(c => c.id === samplePurchase.fornecedor) || { nome: 'Desconhecido' }) : { nome: 'Desconhecido' };
+          
+          const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+          const groupAnimalIds = groupPurchases.map(p => p.animal_id);
+          const activeInGroup = activeAnimals.filter(a => groupAnimalIds.includes(a.id)).length;
+          const totalInGroup = groupPurchases.length;
+          const countStr = totalInGroup === activeInGroup ? `${totalInGroup} Cab.` : `${activeInGroup} de ${totalInGroup} Cab.`;
+          
+          animalText = `Lote #${e.compra_grupo_id} (${countStr}) - Forn: ${window.ui.escapeHTML(supplier.nome)}`;
         }
         const statusClass = e.status === 'Concluído' ? 'text-green' : 'text-orange';
         const formattedDate = window.ui.formatDate(e.data);
         return `
           <tr>
             <td>${formattedDate}</td>
-            <td><strong>${e.titulo}</strong></td>
-            <td>${e.tipo}</td>
+            <td><strong>${window.ui.escapeHTML(e.titulo)}</strong></td>
+            <td>${window.ui.escapeHTML(e.tipo)}</td>
             <td>${animalText}</td>
             <td class="${statusClass}" style="font-weight: bold;">${e.status}</td>
           </tr>
@@ -2053,15 +2067,15 @@ class AppController {
       const active = animals.filter(a => a.status === 'Ativo');
       tableRows = active.map(a => `
         <tr>
-          <td>${a.codigo}</td>
-          <td>${a.brinco}</td>
-          <td>${a.nome || '-'}</td>
+          <td>${window.ui.escapeHTML(a.codigo)}</td>
+          <td>${window.ui.escapeHTML(a.brinco)}</td>
+          <td>${window.ui.escapeHTML(a.nome || '-')}</td>
           <td>${a.sexo === 'M' ? 'Macho' : 'Fêmea'}</td>
-          <td>${a.raca}</td>
-          <td>${a.categoria}</td>
+          <td>${window.ui.escapeHTML(a.raca)}</td>
+          <td>${window.ui.escapeHTML(a.categoria)}</td>
           <td>${a.peso_atual} kg</td>
           <td>${window.ui.formatDate(a.nascimento)}</td>
-          <td>${a.origem}</td>
+          <td>${window.ui.escapeHTML(a.origem)}</td>
         </tr>
       `).join('');
     } else if (reportType === 'vendidos') {
@@ -2079,9 +2093,9 @@ class AppController {
         return `
           <tr>
             <td>${window.ui.formatDate(s.data)}</td>
-            <td>${animal.codigo}</td>
-            <td>${animal.brinco}</td>
-            <td>${buyer.nome}</td>
+            <td>${window.ui.escapeHTML(animal.codigo)}</td>
+            <td>${window.ui.escapeHTML(animal.brinco)}</td>
+            <td>${window.ui.escapeHTML(buyer.nome)}</td>
             <td>${s.peso_venda} kg</td>
             <td>${window.ui.formatCurrency(purchaseVal)}</td>
             <td>${window.ui.formatCurrency(s.valor)}</td>
@@ -2100,9 +2114,9 @@ class AppController {
         return `
           <tr>
             <td>${window.ui.formatDate(p.data)}</td>
-            <td>${animal.codigo}</td>
-            <td>${animal.brinco}</td>
-            <td>${supplier.nome}</td>
+            <td>${window.ui.escapeHTML(animal.codigo)}</td>
+            <td>${window.ui.escapeHTML(animal.brinco)}</td>
+            <td>${window.ui.escapeHTML(supplier.nome)}</td>
             <td>${window.ui.formatCurrency(p.valor)}</td>
           </tr>
         `;
@@ -2119,11 +2133,11 @@ class AppController {
         return `
           <tr>
             <td>${window.ui.formatDate(b.data)}</td>
-            <td>${calf.codigo}</td>
-            <td>${calf.brinco}</td>
+            <td>${window.ui.escapeHTML(calf.codigo)}</td>
+            <td>${window.ui.escapeHTML(calf.brinco)}</td>
             <td>${calf.sexo === 'M' ? 'Macho' : 'Fêmea'}</td>
-            <td>Brinco ${mae.brinco} ${mae.nome ? `(${mae.nome})` : ''}</td>
-            <td>${pai ? `Brinco ${pai.brinco} ${pai.nome ? `(${pai.nome})` : ''}` : 'Não Informado'}</td>
+            <td>Brinco ${window.ui.escapeHTML(mae.brinco)} ${mae.nome ? `(${window.ui.escapeHTML(mae.nome)})` : ''}</td>
+            <td>${pai ? `Brinco ${window.ui.escapeHTML(pai.brinco)} ${pai.nome ? `(${window.ui.escapeHTML(pai.nome)})` : ''}` : 'Não Informado'}</td>
             <td>${b.peso_ao_nascer ? `${b.peso_ao_nascer} kg` : '-'}</td>
           </tr>
         `;
@@ -2140,10 +2154,10 @@ class AppController {
         
         return `
           <tr>
-            <td>${a.codigo}</td>
-            <td>${a.brinco}</td>
-            <td>${a.nome || '-'}</td>
-            <td>${a.categoria}</td>
+            <td>${window.ui.escapeHTML(a.codigo)}</td>
+            <td>${window.ui.escapeHTML(a.brinco)}</td>
+            <td>${window.ui.escapeHTML(a.nome || '-')}</td>
+            <td>${window.ui.escapeHTML(a.categoria)}</td>
             <td>${pesoInicial} kg</td>
             <td>${a.peso_atual} kg</td>
             <td style="font-weight: bold; color: ${ganho >= 0 ? '#166534' : '#991b1b'};">
@@ -2385,10 +2399,10 @@ class AppController {
       
       return `
         <tr>
-          <td><strong>${r.brinco}</strong></td>
-          <td>${r.codigo}</td>
-          <td>${r.categoria}</td>
-          <td>${r.raca}</td>
+          <td><strong>${window.ui.escapeHTML(r.brinco)}</strong></td>
+          <td>${window.ui.escapeHTML(r.codigo)}</td>
+          <td>${window.ui.escapeHTML(r.categoria)}</td>
+          <td>${window.ui.escapeHTML(r.raca)}</td>
           <td>${r.w0.toFixed(1)} kg <span style="font-size: 11px; color: #64748b;">(${formattedW0Date})</span></td>
           <td>${r.w1.toFixed(1)} kg <span style="font-size: 11px; color: #64748b;">(${formattedW1Date})</span></td>
           <td style="font-weight: 600;">${r.days} d</td>
@@ -2538,11 +2552,11 @@ class AppController {
       const anim = window.db.getAnimals().find(a => a.id === s.animal_id) || { brinco: '-', codigo: '-', nome: '-', raca: '-', categoria: '-' };
       return `
         <tr>
-          <td>${anim.codigo}</td>
-          <td><strong>${anim.brinco}</strong></td>
-          <td>${anim.nome || '-'}</td>
-          <td>${anim.raca}</td>
-          <td>${anim.categoria}</td>
+          <td>${window.ui.escapeHTML(anim.codigo)}</td>
+          <td><strong>${window.ui.escapeHTML(anim.brinco)}</strong></td>
+          <td>${window.ui.escapeHTML(anim.nome || '-')}</td>
+          <td>${window.ui.escapeHTML(anim.raca)}</td>
+          <td>${window.ui.escapeHTML(anim.categoria)}</td>
           <td>${s.peso_venda} kg</td>
           <td>${window.ui.formatCurrency(s.valor)}</td>
         </tr>
@@ -2740,20 +2754,20 @@ class AppController {
           <div class="grid-2">
             <div class="info-block">
               <div class="section-title">Vendedor (Emitente)</div>
-              <p><strong>Fazenda:</strong> ${farmName}</p>
-              <p><strong>Proprietário:</strong> ${ownerName}</p>
-              <p><strong>Documento:</strong> ${cpfCnpj}</p>
-              <p><strong>Telefone:</strong> ${farmPhone}</p>
-              <p><strong>E-mail:</strong> ${farmEmail}</p>
-              <p><strong>Cidade/UF:</strong> ${farmLocation}</p>
+              <p><strong>Fazenda:</strong> ${window.ui.escapeHTML(farmName)}</p>
+              <p><strong>Proprietário:</strong> ${window.ui.escapeHTML(ownerName)}</p>
+              <p><strong>Documento:</strong> ${window.ui.escapeHTML(cpfCnpj)}</p>
+              <p><strong>Telefone:</strong> ${window.ui.escapeHTML(farmPhone)}</p>
+              <p><strong>E-mail:</strong> ${window.ui.escapeHTML(farmEmail)}</p>
+              <p><strong>Cidade/UF:</strong> ${window.ui.escapeHTML(farmLocation)}</p>
             </div>
             
             <div class="info-block">
               <div class="section-title">Comprador (Cliente)</div>
-              <p><strong>Nome:</strong> ${buyer.nome}</p>
-              <p><strong>Telefone:</strong> ${buyer.telefone}</p>
-              <p><strong>Cidade:</strong> ${buyer.cidade}</p>
-              <p><strong>Forma de Pagamento:</strong> ${sale.forma_pagamento || '-'}</p>
+              <p><strong>Nome:</strong> ${window.ui.escapeHTML(buyer.nome)}</p>
+              <p><strong>Telefone:</strong> ${window.ui.escapeHTML(buyer.telefone)}</p>
+              <p><strong>Cidade:</strong> ${window.ui.escapeHTML(buyer.cidade)}</p>
+              <p><strong>Forma de Pagamento:</strong> ${window.ui.escapeHTML(sale.forma_pagamento || '-')}</p>
             </div>
           </div>
           
@@ -2800,11 +2814,11 @@ class AppController {
           
           <div class="signature-area">
             <div>
-              <div class="signature-line">${ownerName}</div>
+              <div class="signature-line">${window.ui.escapeHTML(ownerName)}</div>
               <span>Assinatura do Vendedor</span>
             </div>
             <div>
-              <div class="signature-line">${buyer.nome}</div>
+              <div class="signature-line">${window.ui.escapeHTML(buyer.nome)}</div>
               <span>Assinatura do Comprador</span>
             </div>
           </div>
@@ -3412,6 +3426,101 @@ class AppController {
     this.renderCalendar();
   }
 
+  populateAgendaAnimalSelect(selectedAnimalId = null, selectedCompraGrupoId = null) {
+    const animalSelect = document.getElementById('agenda-animal-id');
+    if (!animalSelect) return;
+
+    let activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+    // Garante que o animal atualmente selecionado esteja listado
+    if (selectedAnimalId) {
+      const selAnimalIdNum = parseInt(selectedAnimalId);
+      if (!activeAnimals.some(a => a.id === selAnimalIdNum)) {
+        const selAnimal = window.db.getAnimal(selAnimalIdNum);
+        if (selAnimal) {
+          activeAnimals.push(selAnimal);
+        }
+      }
+    }
+
+    const purchases = window.db.getPurchases() || [];
+    const clients = window.db.getClients() || [];
+
+    const purchaseByAnimalId = {};
+    purchases.forEach(p => {
+      purchaseByAnimalId[p.animal_id] = p;
+    });
+
+    const lotesMap = {};
+    activeAnimals.forEach(a => {
+      const p = purchaseByAnimalId[a.id];
+      if (p && p.compra_grupo_id) {
+        const groupId = p.compra_grupo_id;
+        if (!lotesMap[groupId]) {
+          const supplier = clients.find(c => c.id === p.fornecedor) || { nome: 'Desconhecido' };
+          lotesMap[groupId] = {
+            id: groupId,
+            count: 0,
+            fornecedorNome: supplier.nome,
+            date: p.data || ''
+          };
+        }
+        lotesMap[groupId].count++;
+      }
+    });
+
+    // Garante que o lote atualmente selecionado esteja listado, mesmo sem animais ativos
+    if (selectedCompraGrupoId) {
+      const selGroupIdNum = parseInt(selectedCompraGrupoId);
+      if (!lotesMap[selGroupIdNum]) {
+        const samplePurchase = purchases.find(p => p.compra_grupo_id === selGroupIdNum);
+        if (samplePurchase) {
+          const supplier = clients.find(c => c.id === samplePurchase.fornecedor) || { nome: 'Desconhecido' };
+          lotesMap[selGroupIdNum] = {
+            id: selGroupIdNum,
+            count: 0,
+            fornecedorNome: supplier.nome,
+            date: samplePurchase.data || ''
+          };
+        }
+      }
+    }
+
+    const totalInLote = {};
+    purchases.forEach(p => {
+      if (p.compra_grupo_id) {
+        totalInLote[p.compra_grupo_id] = (totalInLote[p.compra_grupo_id] || 0) + 1;
+      }
+    });
+
+    const activeLotes = Object.values(lotesMap);
+
+    let lotesHtml = '';
+    if (activeLotes.length > 0) {
+      lotesHtml = `<optgroup label="Lotes de Compra">` +
+        activeLotes.map(lote => {
+          const total = totalInLote[lote.id] || lote.count;
+          const countStr = total === lote.count ? `${total} Cab.` : `${lote.count} de ${total} Cab.`;
+          const dateStr = lote.date ? ` - ${window.ui.formatDate(lote.date)}` : '';
+          return `<option value="lote_${lote.id}">Lote #${lote.id} (${countStr}) - Forn: ${window.ui.escapeHTML(lote.fornecedorNome)}${dateStr}</option>`;
+        }).join('') +
+        `</optgroup>`;
+    }
+
+    let animalsHtml = `<optgroup label="Animais Individuais">` +
+      activeAnimals.map(a => `<option value="${a.id}">Brinco ${window.ui.escapeHTML(a.brinco)} - ${window.ui.escapeHTML(a.nome || 'Sem Nome')}</option>`).join('') +
+      `</optgroup>`;
+
+    animalSelect.innerHTML = `<option value="">Todo o Rebanho (Geral)</option>` + lotesHtml + animalsHtml;
+
+    if (selectedCompraGrupoId) {
+      animalSelect.value = `lote_${selectedCompraGrupoId}`;
+    } else if (selectedAnimalId) {
+      animalSelect.value = selectedAnimalId;
+    } else {
+      animalSelect.value = '';
+    }
+  }
+
   openAgendaModal(dateStr = '') {
     const form = document.getElementById('form-agenda');
     if (form) form.reset();
@@ -3429,12 +3538,7 @@ class AppController {
       dateInput.value = dateStr || window.ui.todayString();
     }
     
-    const animalSelect = document.getElementById('agenda-animal-id');
-    if (animalSelect) {
-      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
-      animalSelect.innerHTML = '<option value="">Todo o Rebanho (Geral)</option>' +
-        activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'}</option>`).join('');
-    }
+    this.populateAgendaAnimalSelect(null, null);
     
     const recorrenciaSelect = document.getElementById('agenda-recorrencia');
     if (recorrenciaSelect) {
@@ -3454,7 +3558,17 @@ class AppController {
     const titulo = document.getElementById('agenda-titulo').value;
     const data = document.getElementById('agenda-data').value;
     const tipo = document.getElementById('agenda-tipo').value;
-    const animalId = document.getElementById('agenda-animal-id').value || null;
+    
+    const animalSelectVal = document.getElementById('agenda-animal-id').value || '';
+    let animalId = null;
+    let compraGrupoId = null;
+    if (animalSelectVal) {
+      if (animalSelectVal.startsWith('lote_')) {
+        compraGrupoId = parseInt(animalSelectVal.replace('lote_', ''));
+      } else {
+        animalId = parseInt(animalSelectVal);
+      }
+    }
     const descricao = document.getElementById('agenda-descricao').value || '';
     const recorrencia = document.getElementById('agenda-recorrencia') ? document.getElementById('agenda-recorrencia').value : 'Nenhuma';
     
@@ -3474,7 +3588,8 @@ class AppController {
         titulo,
         data,
         tipo,
-        animal_id: animalId ? parseInt(animalId) : null,
+        animal_id: animalId,
+        compra_grupo_id: compraGrupoId,
         descricao,
         recorrencia: originalRecorrencia,
         recorrencia_grupo_id: recorrenciaGrupoId
@@ -3513,7 +3628,8 @@ class AppController {
             titulo,
             data: d,
             tipo,
-            animal_id: animalId ? parseInt(animalId) : null,
+            animal_id: animalId,
+            compra_grupo_id: compraGrupoId,
             descricao,
             recorrencia,
             recorrencia_grupo_id: recorrenciaGrupoId
@@ -3525,7 +3641,8 @@ class AppController {
           titulo,
           data,
           tipo,
-          animal_id: animalId ? parseInt(animalId) : null,
+          animal_id: animalId,
+          compra_grupo_id: compraGrupoId,
           descricao,
           recorrencia: 'Nenhuma',
           recorrencia_grupo_id: null
@@ -3562,11 +3679,28 @@ class AppController {
     if (event.animal_id) {
       const animal = window.db.getAnimal(event.animal_id);
       if (animal) {
-        animalEl.innerHTML = `<a href="#" onclick="window.app.closeModal('modal-agenda-details'); window.app.showAnimalDetails(${animal.id}); return false;" style="color: var(--primary); text-decoration: underline;">Brinco ${animal.brinco} - ${animal.nome || 'Sem Nome'}</a>`;
+        animalEl.innerHTML = `<a href="#" onclick="window.app.closeModal('modal-agenda-details'); window.app.showAnimalDetails(${animal.id}); return false;" style="color: var(--primary); text-decoration: underline;">Brinco ${window.ui.escapeHTML(animal.brinco)} - ${window.ui.escapeHTML(animal.nome || 'Sem Nome')}</a>`;
         if (animalRow) animalRow.style.display = 'flex';
       } else {
         if (animalRow) animalRow.style.display = 'none';
       }
+    } else if (event.compra_grupo_id) {
+      const purchases = window.db.getPurchases() || [];
+      const clients = window.db.getClients() || [];
+      const groupPurchases = purchases.filter(p => p.compra_grupo_id === event.compra_grupo_id);
+      const samplePurchase = groupPurchases[0];
+      const supplier = samplePurchase ? (clients.find(c => c.id === samplePurchase.fornecedor) || { nome: 'Desconhecido' }) : { nome: 'Desconhecido' };
+      
+      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+      const groupAnimalIds = groupPurchases.map(p => p.animal_id);
+      const activeInGroup = activeAnimals.filter(a => groupAnimalIds.includes(a.id)).length;
+      const totalInGroup = groupPurchases.length;
+      const countStr = totalInGroup === activeInGroup ? `${totalInGroup} Cab.` : `${activeInGroup} de ${totalInGroup} Cab.`;
+      
+      if (animalEl) {
+        animalEl.textContent = `Lote #${event.compra_grupo_id} (${countStr}) - Forn: ${supplier.nome}`;
+      }
+      if (animalRow) animalRow.style.display = 'flex';
     } else {
       if (animalEl) animalEl.textContent = 'Todo o Rebanho (Geral)';
       if (animalRow) animalRow.style.display = 'flex';
@@ -3649,13 +3783,7 @@ class AppController {
     document.getElementById('agenda-tipo').value = event.tipo;
     document.getElementById('agenda-descricao').value = event.descricao || '';
     
-    const animalSelect = document.getElementById('agenda-animal-id');
-    if (animalSelect) {
-      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
-      animalSelect.innerHTML = '<option value="">Todo o Rebanho (Geral)</option>' +
-        activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'}</option>`).join('');
-      animalSelect.value = event.animal_id || '';
-    }
+    this.populateAgendaAnimalSelect(event.animal_id, event.compra_grupo_id);
     
     const recorrenciaSelect = document.getElementById('agenda-recorrencia');
     if (recorrenciaSelect) {

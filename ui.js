@@ -15,6 +15,22 @@ class UserInterface {
 
   // --- MÉTODOS AUXILIARES ---
   
+  // Escape de HTML para prevenir XSS
+  escapeHTML(str) {
+    if (str === undefined || str === null) return '';
+    if (typeof str !== 'string') return String(str);
+    return str.replace(/[&<>"']/g, function(m) {
+      switch (m) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#039;';
+        default: return m;
+      }
+    });
+  }
+
   // Formatador de Moeda
   formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -249,16 +265,16 @@ class UserInterface {
           <tr>
             <td>
               <div class="animal-meta">
-                <div class="animal-avatar">${a.codigo.substring(0,2)}</div>
+                <div class="animal-avatar">${this.escapeHTML(a.codigo.substring(0,2))}</div>
                 <div class="animal-details">
-                  <span class="animal-code">${a.codigo}</span>
-                  <span class="animal-name">${a.nome || 'Sem Nome'}</span>
+                  <span class="animal-code">${this.escapeHTML(a.codigo)}</span>
+                  <span class="animal-name">${this.escapeHTML(a.nome || 'Sem Nome')}</span>
                 </div>
               </div>
             </td>
-            <td>${a.brinco}</td>
+            <td>${this.escapeHTML(a.brinco)}</td>
             <td><span class="badge ${a.sexo === 'M' ? 'badge-info' : 'badge-female'}">${a.sexo === 'M' ? 'Macho' : 'Fêmea'}</span></td>
-            <td><span class="badge badge-success">${a.categoria}</span></td>
+            <td><span class="badge badge-success">${this.escapeHTML(a.categoria)}</span></td>
           </tr>
         `).join('');
       }
@@ -279,8 +295,8 @@ class UserInterface {
           const buyer = clients.find(c => c.id === s.comprador) || { nome: '-' };
           return `
             <tr>
-              <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
-              <td>${buyer.nome}</td>
+              <td><strong>Brinco ${this.escapeHTML(animal.brinco)}</strong> (${this.escapeHTML(animal.codigo)})</td>
+              <td>${this.escapeHTML(buyer.nome)}</td>
               <td>${this.formatDate(s.data)}</td>
               <td style="color: var(--primary); font-weight: 700;">${this.formatCurrency(s.valor)}</td>
             </tr>
@@ -355,17 +371,17 @@ class UserInterface {
         <tr>
           <td>
             <div class="animal-meta">
-              <div class="animal-avatar">${a.codigo.substring(0, 2)}</div>
+              <div class="animal-avatar">${this.escapeHTML(a.codigo.substring(0, 2))}</div>
               <div class="animal-details">
-                <span class="animal-code" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">${a.codigo}${lotBadge}</span>
-                <span class="animal-name">${a.nome || 'Sem Nome'}</span>
+                <span class="animal-code" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">${this.escapeHTML(a.codigo)}${lotBadge}</span>
+                <span class="animal-name">${this.escapeHTML(a.nome || 'Sem Nome')}</span>
               </div>
             </div>
           </td>
-          <td><strong>${a.brinco}</strong></td>
+          <td><strong>${this.escapeHTML(a.brinco)}</strong></td>
           <td><span class="badge ${a.sexo === 'M' ? 'badge-info' : 'badge-female'}">${a.sexo === 'M' ? 'Macho' : 'Fêmea'}</span></td>
-          <td>${a.raca}</td>
-          <td><span class="badge badge-neutral">${a.categoria}</span></td>
+          <td>${this.escapeHTML(a.raca)}</td>
+          <td><span class="badge badge-neutral">${this.escapeHTML(a.categoria)}</span></td>
           <td>${a.peso_atual > 0 ? `${a.peso_atual} kg` : '-'}</td>
           <td>${this.formatDate(a.nascimento)}</td>
           <td>
@@ -410,7 +426,7 @@ class UserInterface {
     // Popula dropdown de animais ativos
     if (select) {
       select.innerHTML = '<option value="">Selecione o Animal...</option>' + 
-        animals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem nome'} (${a.codigo})</option>`).join('');
+        animals.map(a => `<option value="${a.id}">Brinco ${this.escapeHTML(a.brinco)} - ${this.escapeHTML(a.nome || 'Sem nome')} (${this.escapeHTML(a.codigo)})</option>`).join('');
     }
 
     this.updateWeightHistoryTable();
@@ -554,14 +570,14 @@ class UserInterface {
     const vacas = animals.filter(a => a.sexo === 'F' && (a.categoria === 'Vaca' || a.categoria === 'Matriz') && a.status === 'Ativo');
     if (maeSelect) {
       maeSelect.innerHTML = '<option value="">Selecione a Mãe...</option>' +
-        vacas.map(v => `<option value="${v.id}">Brinco ${v.brinco} - ${v.nome || 'Vaca'} (${v.codigo})</option>`).join('');
+        vacas.map(v => `<option value="${v.id}">Brinco ${this.escapeHTML(v.brinco)} - ${this.escapeHTML(v.nome || 'Vaca')} (${this.escapeHTML(v.codigo)})</option>`).join('');
     }
 
     // Popula select de pais (Bois ou Reprodutores ativos)
     const touros = animals.filter(a => a.sexo === 'M' && (a.categoria === 'Boi' || a.categoria === 'Reprodutor') && a.status === 'Ativo');
     if (paiSelect) {
       paiSelect.innerHTML = '<option value=""><option value="">Selecione o Pai (Opcional)...</option>' +
-        touros.map(t => `<option value="${t.id}">Brinco ${t.brinco} - ${t.nome || 'Boi'} (${t.codigo})</option>`).join('');
+        touros.map(t => `<option value="${t.id}">Brinco ${this.escapeHTML(t.brinco)} - ${this.escapeHTML(t.nome || 'Boi')} (${this.escapeHTML(t.codigo)})</option>`).join('');
     }
 
     if (!birthBody) return;
@@ -579,10 +595,10 @@ class UserInterface {
       return `
         <tr>
           <td>${this.formatDate(b.data)}</td>
-          <td><strong>Brinco ${calf.brinco}</strong> (${calf.codigo})</td>
+          <td><strong>Brinco ${this.escapeHTML(calf.brinco)}</strong> (${this.escapeHTML(calf.codigo)})</td>
           <td><span class="badge ${calf.sexo === 'M' ? 'badge-info' : 'badge-female'}">${calf.sexo === 'M' ? 'Macho' : 'Fêmea'}</span></td>
-          <td>Brinco ${mae.brinco} ${mae.nome ? `(${mae.nome})` : ''}</td>
-          <td>${pai ? `Brinco ${pai.brinco} ${pai.nome ? `(${pai.nome})` : ''}` : 'Não Informado'}</td>
+          <td>Brinco ${this.escapeHTML(mae.brinco)} ${mae.nome ? `(${this.escapeHTML(mae.nome)})` : ''}</td>
+          <td>${pai ? `Brinco ${this.escapeHTML(pai.brinco)} ${pai.nome ? `(${this.escapeHTML(pai.nome)})` : ''}` : 'Não Informado'}</td>
           <td>${b.peso_ao_nascer ? `${b.peso_ao_nascer} kg` : '-'}</td>
           <td>
             <button class="action-btn" title="Ver Animal" onclick="window.app.viewAnimalProfile(${calf.id})">
@@ -613,19 +629,19 @@ class UserInterface {
     if (buyFornecedor) {
       const suppliers = clients.filter(c => c.tipo === 'Fornecedor' || c.tipo === 'Ambos');
       buyFornecedor.innerHTML = '<option value="">Selecione o Fornecedor...</option>' +
-        suppliers.map(s => `<option value="${s.id}">${s.nome} (${s.cidade})</option>`).join('');
+        suppliers.map(s => `<option value="${s.id}">${this.escapeHTML(s.nome)} (${this.escapeHTML(s.cidade)})</option>`).join('');
     }
 
     if (sellComprador) {
       const buyers = clients.filter(c => c.tipo === 'Comprador' || c.tipo === 'Ambos');
       sellComprador.innerHTML = '<option value="">Selecione o Comprador...</option>' +
-        buyers.map(b => `<option value="${b.id}">${b.nome} (${b.cidade})</option>`).join('');
+        buyers.map(b => `<option value="${b.id}">${this.escapeHTML(b.nome)} (${this.escapeHTML(b.cidade)})</option>`).join('');
     }
 
     if (sellAnimal) {
       const activeAnimals = animals.filter(a => a.status === 'Ativo');
       sellAnimal.innerHTML = '<option value="">Selecione o Animal...</option>' +
-        activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem nome'} (${a.codigo})</option>`).join('');
+        activeAnimals.map(a => `<option value="${a.id}">Brinco ${this.escapeHTML(a.brinco)} - ${this.escapeHTML(a.nome || 'Sem nome')} (${this.escapeHTML(a.codigo)})</option>`).join('');
     }
 
     // Render Compras
@@ -689,8 +705,8 @@ class UserInterface {
             return `
               <tr>
                 <td>${this.formatDate(p.data)}</td>
-                <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
-                <td>${supplier.nome}</td>
+                <td><strong>Brinco ${this.escapeHTML(animal.brinco)}</strong> (${this.escapeHTML(animal.codigo)})</td>
+                <td>${this.escapeHTML(supplier.nome)}</td>
                 <td style="font-weight: 600;">${this.formatCurrency(p.valor)}</td>
                 <td>
                   <button class="action-btn" title="Ver Perfil" onclick="window.app.viewAnimalProfile(${p.animal_id})">
@@ -701,7 +717,7 @@ class UserInterface {
             `;
           } else {
             const animalList = p.animalIds.map(id => animals.find(a => a.id === id)).filter(Boolean);
-            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${a.brinco}</span>`).join(', ');
+            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${this.escapeHTML(a.brinco)}</span>`).join(', ');
 
             return `
               <tr>
@@ -712,7 +728,7 @@ class UserInterface {
                     ${earringsText}
                   </div>
                 </td>
-                <td>${supplier.nome}</td>
+                <td>${this.escapeHTML(supplier.nome)}</td>
                 <td style="font-weight: 600;">${this.formatCurrency(p.valor)}</td>
                 <td>
                   <div class="table-actions">
@@ -804,13 +820,13 @@ class UserInterface {
             return `
               <tr>
                 <td>${this.formatDate(s.data)}</td>
-                <td><strong>Brinco ${animal.brinco}</strong> (${animal.codigo})</td>
-                <td>${buyer.nome}</td>
+                <td><strong>Brinco ${this.escapeHTML(animal.brinco)}</strong> (${this.escapeHTML(animal.codigo)})</td>
+                <td>${this.escapeHTML(buyer.nome)}</td>
                 <td>${s.peso_venda} kg</td>
                 <td style="color: var(--text-muted);">${this.formatCurrency(purchaseVal)}</td>
                 <td style="font-weight: 600; color: var(--primary);">${this.formatCurrency(s.valor)}</td>
                 <td>${discountVal > 0 ? this.formatCurrency(discountVal) : '-'}</td>
-                <td><span class="badge badge-neutral">${s.forma_pagamento || '-'}</span></td>
+                <td><span class="badge badge-neutral">${this.escapeHTML(s.forma_pagamento || '-')}</span></td>
                 <td class="${lucroClass}" style="font-weight: 700;">${this.formatCurrency(lucro)}</td>
                 <td>
                    <div class="table-actions">
@@ -837,7 +853,7 @@ class UserInterface {
             const lucroClass = totalLucro >= 0 ? 'gmd-positive' : 'gmd-negative';
 
             const animalList = s.animalIds.map(id => animals.find(a => a.id === id)).filter(Boolean);
-            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${a.brinco}</span>`).join(', ');
+            const earringsText = animalList.map(a => `<span style="cursor: pointer; text-decoration: underline;" onclick="window.app.viewAnimalProfile(${a.id})">Brinco ${this.escapeHTML(a.brinco)}</span>`).join(', ');
 
             return `
               <tr>
@@ -848,12 +864,12 @@ class UserInterface {
                     ${earringsText}
                   </div>
                 </td>
-                <td>${buyer.nome}</td>
+                <td>${this.escapeHTML(buyer.nome)}</td>
                 <td>${s.peso_venda.toFixed(1)} kg</td>
                 <td style="color: var(--text-muted);">${this.formatCurrency(totalPurchaseVal)}</td>
                 <td style="font-weight: 600; color: var(--primary);">${this.formatCurrency(s.valor)}</td>
                 <td>${s.desconto > 0 ? this.formatCurrency(s.desconto) : '-'}</td>
-                <td><span class="badge badge-neutral">${s.forma_pagamento || '-'}</span></td>
+                <td><span class="badge badge-neutral">${this.escapeHTML(s.forma_pagamento || '-')}</span></td>
                 <td class="${lucroClass}" style="font-weight: 700;">${this.formatCurrency(totalLucro)}</td>
                 <td>
                   <div class="table-actions">
@@ -890,9 +906,9 @@ class UserInterface {
       } else {
         supplierBody.innerHTML = suppliers.map(s => `
           <tr>
-            <td><strong>${s.nome}</strong></td>
-            <td>${s.telefone}</td>
-            <td>${s.cidade}</td>
+            <td><strong>${this.escapeHTML(s.nome)}</strong></td>
+            <td>${this.escapeHTML(s.telefone)}</td>
+            <td>${this.escapeHTML(s.cidade)}</td>
             <td>
               <div class="table-actions">
                 <button class="action-btn" title="Editar" onclick="window.app.editClient(${s.id})">
@@ -914,9 +930,9 @@ class UserInterface {
       } else {
         buyerBody.innerHTML = buyers.map(b => `
           <tr>
-            <td><strong>${b.nome}</strong></td>
-            <td>${b.telefone}</td>
-            <td>${b.cidade}</td>
+            <td><strong>${this.escapeHTML(b.nome)}</strong></td>
+            <td>${this.escapeHTML(b.telefone)}</td>
+            <td>${this.escapeHTML(b.cidade)}</td>
             <td>
               <div class="table-actions">
                 <button class="action-btn" title="Editar" onclick="window.app.editClient(${b.id})">
@@ -951,7 +967,7 @@ class UserInterface {
     // Status e Categoria Badges
     document.getElementById('profile-badges-container').innerHTML = `
       <span class="badge ${animal.sexo === 'M' ? 'badge-info' : 'badge-female'}">${animal.sexo === 'M' ? 'Macho' : 'Fêmea'}</span>
-      <span class="badge badge-neutral">${animal.categoria}</span>
+      <span class="badge badge-neutral">${this.escapeHTML(animal.categoria)}</span>
       <span class="badge ${isSold ? 'badge-danger' : 'badge-success'}">${isSold ? 'Vendido' : 'Ativo'}</span>
     `;
 
@@ -982,16 +998,16 @@ class UserInterface {
     const clients = window.db.getClients();
 
     let infoHtml = `
-      <div class="info-row"><span>Brinco</span><span>${animal.brinco}</span></div>
-      <div class="info-row"><span>Raça</span><span>${animal.raca}</span></div>
+      <div class="info-row"><span>Brinco</span><span>${this.escapeHTML(animal.brinco)}</span></div>
+      <div class="info-row"><span>Raça</span><span>${this.escapeHTML(animal.raca)}</span></div>
       <div class="info-row"><span>Data de Nascimento</span><span>${this.formatDate(animal.nascimento)}</span></div>
-      <div class="info-row"><span>Origem</span><span>${animal.origem}</span></div>
+      <div class="info-row"><span>Origem</span><span>${this.escapeHTML(animal.origem)}</span></div>
     `;
 
     if (animal.origem === 'Comprado' && pRecord) {
       const supplier = clients.find(c => c.id === pRecord.fornecedor) || { nome: 'Não informado' };
       infoHtml += `
-        <div class="info-row"><span>Fornecedor</span><span>${supplier.nome}</span></div>
+        <div class="info-row"><span>Fornecedor</span><span>${this.escapeHTML(supplier.nome)}</span></div>
         <div class="info-row"><span>Data de Compra</span><span>${this.formatDate(pRecord.data)}</span></div>
         <div class="info-row"><span>Valor de Compra</span><span>${this.formatCurrency(pRecord.valor)}</span></div>
       `;
@@ -999,8 +1015,8 @@ class UserInterface {
       const mae = window.db.getAnimal(nRecord.mae_id) || { brinco: 'Não encontrado' };
       const pai = nRecord.pai_id ? (window.db.getAnimal(nRecord.pai_id) || { brinco: 'Não encontrado' }) : null;
       infoHtml += `
-        <div class="info-row"><span>Mãe (Matriz)</span><span>Brinco ${mae.brinco}</span></div>
-        <div class="info-row"><span>Pai (Reprodutor)</span><span>${pai ? `Brinco ${pai.brinco}` : 'Não Informado'}</span></div>
+        <div class="info-row"><span>Mãe (Matriz)</span><span>Brinco ${this.escapeHTML(mae.brinco)}</span></div>
+        <div class="info-row"><span>Pai (Reprodutor)</span><span>${pai ? `Brinco ${this.escapeHTML(pai.brinco)}` : 'Não Informado'}</span></div>
         <div class="info-row"><span>Peso ao Nascer</span><span>${nRecord.peso_ao_nascer ? `${nRecord.peso_ao_nascer} kg` : 'Não informado'}</span></div>
       `;
     }
@@ -1008,7 +1024,7 @@ class UserInterface {
     if (isSold && sRecord) {
       const buyer = clients.find(c => c.id === sRecord.comprador) || { nome: 'Não informado' };
       infoHtml += `
-        <div class="info-row"><span>Comprador</span><span>${buyer.nome}</span></div>
+        <div class="info-row"><span>Comprador</span><span>${this.escapeHTML(buyer.nome)}</span></div>
         <div class="info-row"><span>Data de Venda</span><span>${this.formatDate(sRecord.data)}</span></div>
         <div class="info-row"><span>Valor de Venda</span><span>${this.formatCurrency(sRecord.valor)}</span></div>
       `;
@@ -1324,10 +1340,10 @@ class UserInterface {
       tableBody.innerHTML = filteredCosts.map(c => `
         <tr>
           <td>${this.formatDate(c.data)}</td>
-          <td><span class="badge badge-neutral">${c.categoria}</span></td>
-          <td>${c.descricao || '-'}</td>
+          <td><span class="badge badge-neutral">${this.escapeHTML(c.categoria)}</span></td>
+          <td>${this.escapeHTML(c.descricao || '-')}</td>
           <td style="font-weight: 600; color: var(--danger);">${this.formatCurrency(c.valor)}</td>
-          <td>${c.periodicidade}</td>
+          <td>${this.escapeHTML(c.periodicidade)}</td>
           <td>
             <button class="action-btn btn-delete btn-sm" title="Excluir Custo" onclick="window.app.deletePropertyCost(${c.id})">
               <i class="lucide-trash-2"></i>
@@ -1432,7 +1448,7 @@ class UserInterface {
       racas = [...racas, { id: 'temp', nome: selectedBreed }];
     }
 
-    select.innerHTML = racas.map(r => `<option value="${r.nome}">${r.nome}</option>`).join('');
+    select.innerHTML = racas.map(r => `<option value="${this.escapeHTML(r.nome)}">${this.escapeHTML(r.nome)}</option>`).join('');
 
     if (selectedBreed) {
       select.value = selectedBreed;
@@ -1452,7 +1468,7 @@ class UserInterface {
 
     listContainer.innerHTML = racas.map(r => `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-        <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${r.nome}</span>
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${this.escapeHTML(r.nome)}</span>
         <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteRaca(${r.id})" title="Excluir Raça" style="padding: 2px;">
           <i class="lucide-trash-2" style="width: 14px; height: 14px;"></i>
         </button>
@@ -1504,7 +1520,7 @@ class UserInterface {
         <tr>
           <td>${this.formatDate(e.data)}</td>
           <td>
-            <strong>${e.descricao || e.tipo}</strong>
+            <strong>${this.escapeHTML(e.descricao || e.tipo)}</strong>
             ${medConfig ? `<br><small style="color: var(--text-muted);">${medConfig.carencia_dias} dias de carência</small>` : ''}
           </td>
           <td>${statusHtml}</td>
@@ -1527,7 +1543,7 @@ class UserInterface {
     listContainer.innerHTML = medicamentos.map(m => `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
         <div style="display: flex; flex-direction: column; gap: 2px;">
-          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${m.nome}</span>
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${this.escapeHTML(m.nome)}</span>
           <span style="font-size: 11px; color: var(--text-muted);">${m.carencia_dias} ${m.carencia_dias === 1 ? 'dia' : 'dias'} de carência</span>
         </div>
         <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteMedicamento(${m.id})" title="Excluir Medicamento" style="padding: 2px;">
@@ -1636,11 +1652,11 @@ class UserInterface {
           <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
             <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="window.app.toggleAgendaStatus(${e.id}, this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
             <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
-              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); text-decoration: ${isCompleted ? 'text-decoration: line-through' : 'none'}; text-decoration-line: ${isCompleted ? 'line-through' : 'none'}; opacity: ${isCompleted ? '0.6' : '1'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${e.titulo}">
-                ${e.titulo}
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); text-decoration: ${isCompleted ? 'text-decoration: line-through' : 'none'}; text-decoration-line: ${isCompleted ? 'line-through' : 'none'}; opacity: ${isCompleted ? '0.6' : '1'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHTML(e.titulo)}">
+                ${this.escapeHTML(e.titulo)}
               </span>
               <span style="font-size: 11px; color: var(--text-muted);">
-                ${this.formatDate(e.data)} • ${e.tipo}
+                ${this.formatDate(e.data)} • ${this.escapeHTML(e.tipo)}
               </span>
             </div>
           </div>
@@ -1677,7 +1693,7 @@ class UserInterface {
           <div class="checkup-item">
             <div class="checkup-item-info">
               <span class="checkup-status-icon done"><i class="lucide-check" style="width: 12px; height: 12px;"></i></span>
-              <span class="checkup-name">${m.nome}</span>
+              <span class="checkup-name">${this.escapeHTML(m.nome)}</span>
             </div>
             <span class="badge badge-success" style="font-size: 10px;">Aplicado</span>
           </div>
@@ -1687,9 +1703,9 @@ class UserInterface {
           <div class="checkup-item">
             <div class="checkup-item-info">
               <span class="checkup-status-icon pending"><i class="lucide-x" style="width: 12px; height: 12px;"></i></span>
-              <span class="checkup-name">${m.nome}</span>
+              <span class="checkup-name">${this.escapeHTML(m.nome)}</span>
             </div>
-            <button class="btn btn-primary btn-xs" onclick="window.app.quickApplyVaccine('${m.nome.replace(/'/g, "\\'")}', ${animalId})" style="padding: 2px 6px; font-size: 11px; font-weight: 700;">
+            <button class="btn btn-primary btn-xs" onclick="window.app.quickApplyVaccine('${this.escapeHTML(m.nome).replace(/'/g, "\\'")}', ${animalId})" style="padding: 2px 6px; font-size: 11px; font-weight: 700;">
               Aplicar
             </button>
           </div>

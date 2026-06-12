@@ -1025,6 +1025,7 @@ class LocalDB {
       ...item,
       id: this._nextId(DB_KEYS.AGENDA_MANEJO),
       animal_id: item.animal_id ? parseInt(item.animal_id) : null,
+      compra_grupo_id: item.compra_grupo_id ? parseInt(item.compra_grupo_id) : null,
       status: item.status || 'Pendente',
       recorrencia: item.recorrencia || 'Nenhuma',
       recorrencia_grupo_id: item.recorrencia_grupo_id || null
@@ -1041,6 +1042,7 @@ class LocalDB {
         descricao: newItem.descricao || '',
         status: newItem.status,
         animal_id: newItem.animal_id,
+        compra_grupo_id: newItem.compra_grupo_id,
         recorrencia: newItem.recorrencia,
         recorrencia_grupo_id: newItem.recorrencia_grupo_id
       }).then(({ error }) => {
@@ -1076,6 +1078,7 @@ class LocalDB {
       existing.tipo = item.tipo;
       existing.descricao = item.descricao || '';
       existing.animal_id = item.animal_id ? parseInt(item.animal_id) : null;
+      existing.compra_grupo_id = item.compra_grupo_id ? parseInt(item.compra_grupo_id) : null;
       existing.recorrencia = item.recorrencia || 'Nenhuma';
       existing.recorrencia_grupo_id = item.recorrencia_grupo_id || null;
       this._set(DB_KEYS.AGENDA_MANEJO, data);
@@ -1087,6 +1090,7 @@ class LocalDB {
           tipo: existing.tipo,
           descricao: existing.descricao,
           animal_id: existing.animal_id,
+          compra_grupo_id: existing.compra_grupo_id,
           recorrencia: existing.recorrencia,
           recorrencia_grupo_id: existing.recorrencia_grupo_id
         }).eq('id', existing.id).then(({ error }) => {
@@ -1178,25 +1182,25 @@ class LocalDB {
       
       const user = await this.getCurrentUser();
       if (!user) return;
+      const uId = user.id;
 
       // Limpa dados anteriores do usuário antes de enviar
       await Promise.all([
-        supabaseClient.from('animal_fotos').delete().neq('id', 0),
-        supabaseClient.from('agenda_manejo').delete().neq('id', 0),
-        supabaseClient.from('despesas').delete().neq('id', 0),
-        supabaseClient.from('nascimentos').delete().neq('id', 0),
-        supabaseClient.from('vendas').delete().neq('id', 0),
-        supabaseClient.from('compras').delete().neq('id', 0),
-        supabaseClient.from('pesagens').delete().neq('id', 0),
-        supabaseClient.from('animais').delete().neq('id', 0),
-        supabaseClient.from('clientes').delete().neq('id', 0),
-        supabaseClient.from('custos_fazenda').delete().neq('id', 0),
-        supabaseClient.from('racas').delete().neq('id', 0),
-        supabaseClient.from('medicamentos').delete().neq('id', 0)
+        supabaseClient.from('animal_fotos').delete().eq('user_id', uId),
+        supabaseClient.from('agenda_manejo').delete().eq('user_id', uId),
+        supabaseClient.from('despesas').delete().eq('user_id', uId),
+        supabaseClient.from('nascimentos').delete().eq('user_id', uId),
+        supabaseClient.from('vendas').delete().eq('user_id', uId),
+        supabaseClient.from('compras').delete().eq('user_id', uId),
+        supabaseClient.from('pesagens').delete().eq('user_id', uId),
+        supabaseClient.from('animais').delete().eq('user_id', uId),
+        supabaseClient.from('clientes').delete().eq('user_id', uId),
+        supabaseClient.from('custos_fazenda').delete().eq('user_id', uId),
+        supabaseClient.from('racas').delete().eq('user_id', uId),
+        supabaseClient.from('medicamentos').delete().eq('user_id', uId)
       ]);
 
       // Insere na ordem certa com user_id explícito se necessário (ou defaults)
-      const uId = user.id;
       
       if (data.configuracoes) {
         await supabaseClient.from('configuracoes').upsert({
