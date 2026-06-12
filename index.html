@@ -2121,7 +2121,7 @@
   </div>
 
   <!-- OVERLAY DE ZOOM DE FOTOS -->
-  <div class="modal-overlay" id="modal-image-zoom" onclick="window.app.closeModal('modal-image-zoom')" style="background-color: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+  <div class="modal-overlay" id="modal-image-zoom" onclick="window.app.closeModal('modal-image-zoom')" style="background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 10000;">
     <div style="position: relative; max-width: 90%; max-height: 90%;" onclick="event.stopPropagation();">
       <button class="modal-close" onclick="window.app.closeModal('modal-image-zoom')" style="position: absolute; top: -40px; right: 0; color: white; font-size: 30px; border: none; background: none; cursor: pointer;">&times;</button>
       <img id="zoomed-image" src="" style="max-width: 100%; max-height: 85vh; border-radius: var(--radius-md); border: 2px solid var(--border-color); box-shadow: var(--shadow-lg);">
