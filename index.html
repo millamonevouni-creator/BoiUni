@@ -1308,175 +1308,205 @@
 
       <!-- 8. PAINEL DE CONFIGURAÇÕES -->
       <div id="panel-configuracoes" class="content-panel">
-        <div class="dashboard-charts" style="grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+        <div class="settings-layout">
           
-          <!-- Dados da Fazenda -->
-          <div class="chart-card">
-            <h3><i class="lucide-settings"></i> Configurações da Fazenda</h3>
-            <form id="form-configuracoes" style="display: flex; flex-direction: column; gap: 20px;">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="config-nome-fazenda">Nome da Fazenda</label>
-                  <input type="text" id="config-nome-fazenda" name="nome_fazenda" placeholder="Ex: Fazenda Bela Vista">
-                </div>
-                <div class="form-group">
-                  <label for="config-proprietario">Nome do Proprietário</label>
-                  <input type="text" id="config-proprietario" name="proprietario" placeholder="Ex: João da Silva">
-                </div>
-                <div class="form-group">
-                  <label for="config-cpf">CPF do Proprietário</label>
-                  <input type="text" id="config-cpf" name="cpf" placeholder="000.000.000-00">
-                </div>
-                <div class="form-group">
-                  <label for="config-cnpj">CNPJ (se houver)</label>
-                  <input type="text" id="config-cnpj" name="cnpj" placeholder="00.000.000/0000-00">
-                </div>
-                <div class="form-group">
-                  <label for="config-telefone">Telefone de Contato</label>
-                  <input type="text" id="config-telefone" name="telefone" placeholder="(00) 00000-0000">
-                </div>
-                <div class="form-group">
-                  <label for="config-email">E-mail de Contato</label>
-                  <input type="email" id="config-email" name="email" placeholder="contato@fazenda.com">
-                </div>
-                <div class="form-group">
-                  <label for="config-municipio">Município</label>
-                  <input type="text" id="config-municipio" name="municipio" placeholder="Ex: Barretos">
-                </div>
-                <div class="form-group">
-                  <label for="config-estado">Estado (UF)</label>
-                  <select id="config-estado" name="estado" class="filter-select">
-                    <option value="">Selecione o estado...</option>
-                    <option value="AC">Acre</option>
-                    <option value="AL">Alagoas</option>
-                    <option value="AP">Amapá</option>
-                    <option value="AM">Amazonas</option>
-                    <option value="BA">Bahia</option>
-                    <option value="CE">Ceará</option>
-                    <option value="DF">Distrito Federal</option>
-                    <option value="ES">Espírito Santo</option>
-                    <option value="GO">Goiás</option>
-                    <option value="MA">Maranhão</option>
-                    <option value="MT">Mato Grosso</option>
-                    <option value="MS">Mato Grosso do Sul</option>
-                    <option value="MG">Minas Gerais</option>
-                    <option value="PA">Pará</option>
-                    <option value="PB">Paraíba</option>
-                    <option value="PR">Paraná</option>
-                    <option value="PE">Pernambuco</option>
-                    <option value="PI">Piauí</option>
-                    <option value="RJ">Rio de Janeiro</option>
-                    <option value="RN">Rio Grande do Norte</option>
-                    <option value="RS">Rio Grande do Sul</option>
-                    <option value="RO">Rondônia</option>
-                    <option value="RR">Roraima</option>
-                    <option value="SC">Santa Catarina</option>
-                    <option value="SP">São Paulo</option>
-                    <option value="SE">Sergipe</option>
-                    <option value="TO">Tocantins</option>
-                  </select>
-                </div>
-              </div>
-              
-              <button type="submit" class="btn btn-primary" style="align-self: flex-start; min-width: 200px;">
-                <i class="lucide-save"></i> Salvar Configurações
-              </button>
-            </form>
+          <!-- Sidebar Navigation -->
+          <div class="settings-sidebar">
+            <button class="settings-nav-btn active" onclick="window.app.switchSettingsTab('settings-tab-fazenda', this)">
+              <i class="lucide-settings" style="width: 16px; height: 16px;"></i> Dados da Fazenda
+            </button>
+            <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-racas', this)">
+              <i class="lucide-settings-2" style="width: 16px; height: 16px;"></i> Cadastro de Raças
+            </button>
+            <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-medicamentos', this)">
+              <i class="lucide-pill" style="width: 16px; height: 16px;"></i> Medicamentos & Carência
+            </button>
+            <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-seguranca', this)">
+              <i class="lucide-key-round" style="width: 16px; height: 16px;"></i> Alterar Senha
+            </button>
+            <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-manutencao', this)">
+              <i class="lucide-database" style="width: 16px; height: 16px;"></i> Manutenção & Backup
+            </button>
           </div>
 
-          <!-- Coluna Direita (Senha e Manutenção) -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            <!-- Alterar Senha -->
-            <div class="chart-card">
-              <h3><i class="lucide-key-round"></i> Alterar Senha</h3>
-              <form id="form-change-password" style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="form-group">
-                  <label for="change-password-new">Nova Senha *</label>
-                  <div class="password-input-container">
-                    <input type="password" id="change-password-new" name="new_password" placeholder="Mínimo de 6 caracteres" required minlength="6">
-                    <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-new', this)">
-                      <i class="lucide-eye"></i>
-                    </button>
+          <!-- Settings Content Area -->
+          <div class="settings-content">
+            
+            <!-- Tab: Dados da Fazenda -->
+            <div id="settings-tab-fazenda" class="settings-tab-pane active">
+              <div class="chart-card">
+                <h3><i class="lucide-settings"></i> Configurações da Fazenda</h3>
+                <form id="form-configuracoes" style="display: flex; flex-direction: column; gap: 20px;">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="config-nome-fazenda">Nome da Fazenda</label>
+                      <input type="text" id="config-nome-fazenda" name="nome_fazenda" placeholder="Ex: Fazenda Bela Vista">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-proprietario">Nome do Proprietário</label>
+                      <input type="text" id="config-proprietario" name="proprietario" placeholder="Ex: João da Silva">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-cpf">CPF do Proprietário</label>
+                      <input type="text" id="config-cpf" name="cpf" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-cnpj">CNPJ (se houver)</label>
+                      <input type="text" id="config-cnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-telefone">Telefone de Contato</label>
+                      <input type="text" id="config-telefone" name="telefone" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-email">E-mail de Contato</label>
+                      <input type="email" id="config-email" name="email" placeholder="contato@fazenda.com">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-municipio">Município</label>
+                      <input type="text" id="config-municipio" name="municipio" placeholder="Ex: Barretos">
+                    </div>
+                    <div class="form-group">
+                      <label for="config-estado">Estado (UF)</label>
+                      <select id="config-estado" name="estado" class="filter-select">
+                        <option value="">Selecione o estado...</option>
+                        <option value="AC">Acre</option>
+                        <option value="AL">Alagoas</option>
+                        <option value="AP">Amapá</option>
+                        <option value="AM">Amazonas</option>
+                        <option value="BA">Bahia</option>
+                        <option value="CE">Ceará</option>
+                        <option value="DF">Distrito Federal</option>
+                        <option value="ES">Espírito Santo</option>
+                        <option value="GO">Goiás</option>
+                        <option value="MA">Maranhão</option>
+                        <option value="MT">Mato Grosso</option>
+                        <option value="MS">Mato Grosso do Sul</option>
+                        <option value="MG">Minas Gerais</option>
+                        <option value="PA">Pará</option>
+                        <option value="PB">Paraíba</option>
+                        <option value="PR">Paraná</option>
+                        <option value="PE">Pernambuco</option>
+                        <option value="PI">Piauí</option>
+                        <option value="RJ">Rio de Janeiro</option>
+                        <option value="RN">Rio Grande do Norte</option>
+                        <option value="RS">Rio Grande do Sul</option>
+                        <option value="RO">Rondônia</option>
+                        <option value="RR">Roraima</option>
+                        <option value="SC">Santa Catarina</option>
+                        <option value="SP">São Paulo</option>
+                        <option value="SE">Sergipe</option>
+                        <option value="TO">Tocantins</option>
+                      </select>
+                    </div>
                   </div>
+                  
+                  <button type="submit" class="btn btn-primary" style="align-self: flex-start; min-width: 200px;">
+                    <i class="lucide-save"></i> Salvar Configurações
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Tab: Cadastro de Raças -->
+            <div id="settings-tab-racas" class="settings-tab-pane hidden">
+              <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
+                <h3><i class="lucide-settings-2"></i> Cadastro de Raças</h3>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+                  Adicione ou exclua as raças disponíveis no sistema para o cadastro dos animais.
+                </p>
+                <form id="form-config-raca" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); window.app.handleAddRaca();">
+                  <input type="text" id="config-raca-nome" placeholder="Nova Raça (Ex: Nelore)" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                  <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
+                </form>
+                <div id="config-racas-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
+                  <!-- Lista de raças populada dinamicamente -->
                 </div>
-                <div class="form-group">
-                  <label for="change-password-confirm">Confirmar Nova Senha *</label>
-                  <div class="password-input-container">
-                    <input type="password" id="change-password-confirm" name="confirm_password" placeholder="Confirme a nova senha" required minlength="6">
-                    <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-confirm', this)">
-                      <i class="lucide-eye"></i>
-                    </button>
+              </div>
+            </div>
+
+            <!-- Tab: Cadastro de Medicamentos -->
+            <div id="settings-tab-medicamentos" class="settings-tab-pane hidden">
+              <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
+                <h3><i class="lucide-pill"></i> Cadastro de Medicamentos</h3>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+                  Configure os medicamentos/vacinas e seus dias de carência recomendados.
+                </p>
+                <form id="form-config-medicamento" style="display: flex; flex-direction: column; gap: 10px;" onsubmit="event.preventDefault(); window.app.handleAddMedicamento();">
+                  <input type="text" id="config-medicamento-nome" placeholder="Medicamento/Vacina (Ex: Vacina Aftosa)" required style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="number" id="config-medicamento-carencia" placeholder="Dias de carência" min="0" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                    <button type="submit" class="btn btn-primary btn-sm" style="height: 36px; padding: 0 16px;">Adicionar</button>
                   </div>
+                </form>
+                <div id="config-medicamentos-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
+                  <!-- Lista de medicamentos populada dinamicamente -->
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                  <i class="lucide-lock"></i> Atualizar Senha
+              </div>
+            </div>
+
+            <!-- Tab: Alterar Senha -->
+            <div id="settings-tab-seguranca" class="settings-tab-pane hidden">
+              <div class="chart-card">
+                <h3><i class="lucide-key-round"></i> Alterar Senha</h3>
+                <form id="form-change-password" style="display: flex; flex-direction: column; gap: 16px;">
+                  <div class="form-group">
+                    <label for="change-password-new">Nova Senha *</label>
+                    <div class="password-input-container">
+                      <input type="password" id="change-password-new" name="new_password" placeholder="Mínimo de 6 caracteres" required minlength="6">
+                      <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-new', this)">
+                        <i class="lucide-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="change-password-confirm">Confirmar Nova Senha *</label>
+                    <div class="password-input-container">
+                      <input type="password" id="change-password-confirm" name="confirm_password" placeholder="Confirme a nova senha" required minlength="6">
+                      <button type="button" class="password-toggle-btn" onclick="window.app.togglePasswordVisibility('change-password-confirm', this)">
+                        <i class="lucide-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="lucide-lock"></i> Atualizar Senha
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Tab: Manutenção & Backup -->
+            <div id="settings-tab-manutencao" class="settings-tab-pane hidden">
+              <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
+                <h3><i class="lucide-database"></i> Manutenção</h3>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+                  Gerencie a segurança dos seus dados do rebanho gerando backups manuais ou restaurando arquivos JSON anteriores.
+                </p>
+                
+                <button class="btn btn-secondary" onclick="window.app.exportBackup()" style="width: 100%;">
+                  <i class="lucide-download"></i> Exportar Backup (JSON)
                 </button>
-              </form>
-            </div>
-
-            <!-- Gerenciar Raças -->
-            <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
-              <h3><i class="lucide-settings-2"></i> Cadastro de Raças</h3>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
-                Adicione ou exclua as raças disponíveis no sistema para o cadastro dos animais.
-              </p>
-              <form id="form-config-raca" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); window.app.handleAddRaca();">
-                <input type="text" id="config-raca-nome" placeholder="Nova Raça (Ex: Nelore)" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
-                <button type="submit" class="btn btn-primary btn-sm">Adicionar</button>
-              </form>
-              <div id="config-racas-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
-                <!-- Lista de raças populada dinamicamente -->
+                
+                <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="width: 100%;">
+                  <i class="lucide-upload"></i> Importar Backup (JSON)
+                </button>
+                
+                <input type="file" id="backup-file-input" class="hidden" accept=".json" onchange="window.app.importBackup(event)">
+                
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+                
+                <h4 style="color: var(--danger); font-size: 14px; font-weight: 700;">Área de Perigo</h4>
+                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
+                  Esta operação apagará todos os dados de forma permanente e irreversível.
+                </p>
+                
+                <button class="btn btn-danger" onclick="window.app.clearAllUserData()" style="width: 100%;">
+                  <i class="lucide-trash-2"></i> Limpar Todo o Sistema
+                </button>
               </div>
             </div>
 
-            <!-- Gerenciar Medicamentos -->
-            <div class="chart-card" style="display: flex; flex-direction: column; gap: 16px;">
-              <h3><i class="lucide-pill"></i> Cadastro de Medicamentos</h3>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
-                Configure os medicamentos/vacinas e seus dias de carência recomendados.
-              </p>
-              <form id="form-config-medicamento" style="display: flex; flex-direction: column; gap: 10px;" onsubmit="event.preventDefault(); window.app.handleAddMedicamento();">
-                <input type="text" id="config-medicamento-nome" placeholder="Medicamento/Vacina (Ex: Vacina Aftosa)" required style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <input type="number" id="config-medicamento-carencia" placeholder="Dias de carência" min="0" required style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
-                  <button type="submit" class="btn btn-primary btn-sm" style="height: 36px; padding: 0 16px;">Adicionar</button>
-                </div>
-              </form>
-              <div id="config-medicamentos-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
-                <!-- Lista de medicamentos populada dinamicamente -->
-              </div>
-            </div>
-
-            <!-- Backup e Manutenção -->
-            <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
-              <h3><i class="lucide-database"></i> Manutenção</h3>
-              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
-                Gerencie a segurança dos seus dados do rebanho gerando backups manuais ou restaurando arquivos JSON anteriores.
-              </p>
-              
-              <button class="btn btn-secondary" onclick="window.app.exportBackup()" style="width: 100%;">
-                <i class="lucide-download"></i> Exportar Backup (JSON)
-              </button>
-              
-              <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="width: 100%;">
-                <i class="lucide-upload"></i> Importar Backup (JSON)
-              </button>
-              
-              <input type="file" id="backup-file-input" class="hidden" accept=".json" onchange="window.app.importBackup(event)">
-              
-              <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
-              
-              <h4 style="color: var(--danger); font-size: 14px; font-weight: 700;">Área de Perigo</h4>
-              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-                Esta operação apagará todos os dados de forma permanente e irreversível.
-              </p>
-              
-              <button class="btn btn-danger" onclick="window.app.clearAllUserData()" style="width: 100%;">
-                <i class="lucide-trash-2"></i> Limpar Todo o Sistema
-              </button>
-            </div>
           </div>
-
         </div>
       </div>
 

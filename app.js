@@ -31,6 +31,7 @@ class AppController {
 
     // 2. Vincula Eventos
     this.setupEventListeners();
+    this.setupInputMasks();
 
     // 3. Captura sessão do Supabase
     const session = await window.db.getCurrentSession();
@@ -2844,6 +2845,75 @@ class AppController {
       window.db.deleteMedicamento(id);
       window.ui.renderMedicamentosConfig();
       window.ui.showToast('Medicamento excluído.');
+    }
+  }
+
+  // Alterna entre as abas do painel de configurações
+  switchSettingsTab(tabId, buttonElement) {
+    // Esconde todos os painéis
+    const panes = document.querySelectorAll('.settings-tab-pane');
+    panes.forEach(pane => pane.classList.add('hidden'));
+
+    // Exibe o painel selecionado
+    const activePane = document.getElementById(tabId);
+    if (activePane) activePane.classList.remove('hidden');
+
+    // Remove classe ativa de todos os botões de navegação lateral
+    const buttons = document.querySelectorAll('.settings-nav-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    // Adiciona classe ativa no botão clicado
+    if (buttonElement) buttonElement.classList.add('active');
+  }
+
+  // Configura máscaras de digitação em tempo real (CPF, CNPJ, Telefone)
+  setupInputMasks() {
+    const cpfInput = document.getElementById('config-cpf');
+    const cnpjInput = document.getElementById('config-cnpj');
+    const phoneInput = document.getElementById('config-telefone');
+
+    if (cpfInput) {
+      cpfInput.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value.length > 11) value = value.slice(0, 11);
+        value = value.replace(/(\d{3})(\d)/, "$1.$2");
+        value = value.replace(/(\d{3})(\d)/, "$1.$2");
+        value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+        e.target.value = value;
+      });
+    }
+
+    if (cnpjInput) {
+      cnpjInput.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value.length > 14) value = value.slice(0, 14);
+        value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+        value = value.replace(/(\d{4})(\d)/, "$1-$2");
+        e.target.value = value;
+      });
+    }
+
+    if (phoneInput) {
+      phoneInput.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value.length > 11) value = value.slice(0, 11);
+        if (value.length > 10) {
+          // (99) 99999-9999
+          value = value.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+        } else if (value.length > 5) {
+          // (99) 9999-9999
+          value = value.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+        } else if (value.length > 2) {
+          // (99) 9999
+          value = value.replace(/^(\d{2})(\d{0,5})$/, "($1) $2");
+        } else if (value.length > 0) {
+          // (99
+          value = value.replace(/^(\d*)$/, "($1");
+        }
+        e.target.value = value;
+      });
     }
   }
 }
