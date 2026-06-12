@@ -11,7 +11,9 @@ const DB_KEYS = {
   DESPESAS: 'boiuni_despesas',
   CUSTOS_FAZENDA: 'boiuni_custos_fazenda',
   RACAS: 'boiuni_racas',
-  MEDICAMENTOS: 'boiuni_medicamentos'
+  MEDICAMENTOS: 'boiuni_medicamentos',
+  ANIMAL_FOTOS: 'boiuni_animal_fotos',
+  AGENDA_MANEJO: 'boiuni_agenda_manejo'
 };
 
 // Configuração Supabase
@@ -201,7 +203,9 @@ class LocalDB {
     if (!user) return;
     
     const uId = user.id;
-    // Exclui primeiro as tabelas filhas (transações, pesagens, nascimentos, despesas, custos_fazenda)
+    // Exclui primeiro as tabelas filhas
+    await supabaseClient.from('animal_fotos').delete().eq('user_id', uId);
+    await supabaseClient.from('agenda_manejo').delete().eq('user_id', uId);
     await supabaseClient.from('custos_fazenda').delete().eq('user_id', uId);
     await supabaseClient.from('despesas').delete().eq('user_id', uId);
     await supabaseClient.from('nascimentos').delete().eq('user_id', uId);
@@ -243,7 +247,7 @@ class LocalDB {
     console.log("Sincronizando rebanho do Supabase...");
     try {
       // Busca tabelas do usuário autenticado (RLS garante o isolamento)
-      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas, rMedicamentos] = await Promise.all([
+      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas, rMedicamentos, rAnimalFotos, rAgendaManejo] = await Promise.all([
         supabaseClient.from('clientes').select('*'),
         supabaseClient.from('animais').select('*').order('id', { ascending: true }),
         supabaseClient.from('pesagens').select('*'),
@@ -254,7 +258,9 @@ class LocalDB {
         supabaseClient.from('despesas').select('*'),
         supabaseClient.from('custos_fazenda').select('*'),
         supabaseClient.from('racas').select('*'),
-        supabaseClient.from('medicamentos').select('*')
+        supabaseClient.from('medicamentos').select('*'),
+        supabaseClient.from('animal_fotos').select('*'),
+        supabaseClient.from('agenda_manejo').select('*')
       ]);
 
       if (rClientes.error) throw rClientes.error;
@@ -268,6 +274,8 @@ class LocalDB {
       if (rCustosFazenda.error) throw rCustosFazenda.error;
       if (rRacas.error) throw rRacas.error;
       if (rMedicamentos.error) throw rMedicamentos.error;
+      if (rAnimalFotos.error) throw rAnimalFotos.error;
+      if (rAgendaManejo.error) throw rAgendaManejo.error;
 
       // Salva no localStorage local
       this._set(DB_KEYS.CLIENTES, rClientes.data);
@@ -281,6 +289,8 @@ class LocalDB {
       this._set(DB_KEYS.CUSTOS_FAZENDA, rCustosFazenda.data);
       this._set(DB_KEYS.RACAS, rRacas.data);
       this._set(DB_KEYS.MEDICAMENTOS, rMedicamentos.data);
+      this._set(DB_KEYS.ANIMAL_FOTOS, rAnimalFotos.data);
+      this._set(DB_KEYS.AGENDA_MANEJO, rAgendaManejo.data);
 
       // Se todas as tabelas vieram vazias, apenas registra no console
       if (rAnimais.data.length === 0 && rClientes.data.length === 0) {
@@ -960,6 +970,112 @@ class LocalDB {
     }
   }
 
+  // --- EVOLUÇÃO VISUAL (FOTOS) ---
+  getAnimalPhotos(animalId) {
+    const data = this._get(DB_KEYS.ANIMAL_FOTOS) || [];
+    return data.filter(f => f.animal_id === parseInt(animalId));
+  }
+
+  addAnimalPhoto(photo) {
+    const data = this._get(DB_KEYS.ANIMAL_FOTOS) || [];
+    const newPhoto = {
+      ...photo,
+      id: this._nextId(DB_KEYS.ANIMAL_FOTOS),
+      animal_id: parseInt(photo.animal_id)
+    };
+    data.push(newPhoto);
+    this._set(DB_KEYS.ANIMAL_FOTOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('animal_fotos').insert({
+        id: newPhoto.id,
+        animal_id: newPhoto.animal_id,
+        etapa: newPhoto.etapa,
+        foto: newPhoto.foto,
+        data: newPhoto.data
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar foto no Supabase:", error);
+      });
+    }
+
+    return newPhoto;
+  }
+
+  deleteAnimalPhoto(id) {
+    let data = this._get(DB_KEYS.ANIMAL_FOTOS) || [];
+    data = data.filter(f => f.id !== parseInt(id));
+    this._set(DB_KEYS.ANIMAL_FOTOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('animal_fotos').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar foto no Supabase:", error);
+        });
+    }
+  }
+
+  // --- AGENDA / CALENDÁRIO DE MANEJO ---
+  getAgenda() {
+    return this._get(DB_KEYS.AGENDA_MANEJO) || [];
+  }
+
+  addAgendaItem(item) {
+    const data = this.getAgenda();
+    const newItem = {
+      ...item,
+      id: this._nextId(DB_KEYS.AGENDA_MANEJO),
+      animal_id: item.animal_id ? parseInt(item.animal_id) : null,
+      status: item.status || 'Pendente'
+    };
+    data.push(newItem);
+    this._set(DB_KEYS.AGENDA_MANEJO, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('agenda_manejo').insert({
+        id: newItem.id,
+        titulo: newItem.titulo,
+        data: newItem.data,
+        tipo: newItem.tipo,
+        descricao: newItem.descricao || '',
+        status: newItem.status,
+        animal_id: newItem.animal_id
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar compromisso no Supabase:", error);
+      });
+    }
+
+    return newItem;
+  }
+
+  updateAgendaItemStatus(id, status) {
+    const data = this.getAgenda();
+    const item = data.find(i => i.id === parseInt(id));
+    if (item) {
+      item.status = status;
+      this._set(DB_KEYS.AGENDA_MANEJO, data);
+
+      if (supabaseClient) {
+        supabaseClient.from('agenda_manejo').update({ status }).eq('id', parseInt(id))
+          .then(({ error }) => {
+            if (error) console.error("Erro ao atualizar status do compromisso no Supabase:", error);
+          });
+      }
+    }
+  }
+
+  deleteAgendaItem(id) {
+    let data = this.getAgenda();
+    data = data.filter(i => i.id !== parseInt(id));
+    this._set(DB_KEYS.AGENDA_MANEJO, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('agenda_manejo').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar compromisso no Supabase:", error);
+        });
+    }
+  }
+
   // --- EXPORTAR / IMPORTAR BACKUP ---
   exportData() {
     const backup = {
@@ -973,7 +1089,9 @@ class LocalDB {
       despesas: this.getExpenses(),
       custos_fazenda: this.getPropertyCosts(),
       racas: this.getRacas(),
-      medicamentos: this.getMedicamentos()
+      medicamentos: this.getMedicamentos(),
+      animal_fotos: this._get(DB_KEYS.ANIMAL_FOTOS) || [],
+      agenda_manejo: this._get(DB_KEYS.AGENDA_MANEJO) || []
     };
     return JSON.stringify(backup, null, 2);
   }
@@ -992,6 +1110,8 @@ class LocalDB {
       if (data.custos_fazenda && Array.isArray(data.custos_fazenda)) this._set(DB_KEYS.CUSTOS_FAZENDA, data.custos_fazenda);
       if (data.racas && Array.isArray(data.racas)) this._set(DB_KEYS.RACAS, data.racas);
       if (data.medicamentos && Array.isArray(data.medicamentos)) this._set(DB_KEYS.MEDICAMENTOS, data.medicamentos);
+      if (data.animal_fotos && Array.isArray(data.animal_fotos)) this._set(DB_KEYS.ANIMAL_FOTOS, data.animal_fotos);
+      if (data.agenda_manejo && Array.isArray(data.agenda_manejo)) this._set(DB_KEYS.AGENDA_MANEJO, data.agenda_manejo);
       
       if (supabaseClient) {
         this.pushAllToSupabase(data);
@@ -1013,6 +1133,8 @@ class LocalDB {
 
       // Limpa dados anteriores do usuário antes de enviar
       await Promise.all([
+        supabaseClient.from('animal_fotos').delete().neq('id', 0),
+        supabaseClient.from('agenda_manejo').delete().neq('id', 0),
         supabaseClient.from('despesas').delete().neq('id', 0),
         supabaseClient.from('nascimentos').delete().neq('id', 0),
         supabaseClient.from('vendas').delete().neq('id', 0),
@@ -1071,6 +1193,12 @@ class LocalDB {
       }
       if (data.medicamentos && data.medicamentos.length > 0) {
         await supabaseClient.from('medicamentos').insert(data.medicamentos.map(m => ({ ...m, user_id: uId })));
+      }
+      if (data.animal_fotos && data.animal_fotos.length > 0) {
+        await supabaseClient.from('animal_fotos').insert(data.animal_fotos.map(af => ({ ...af, user_id: uId })));
+      }
+      if (data.agenda_manejo && data.agenda_manejo.length > 0) {
+        await supabaseClient.from('agenda_manejo').insert(data.agenda_manejo.map(am => ({ ...am, user_id: uId })));
       }
 
       console.log("Semente de dados gravada com sucesso no Supabase.");

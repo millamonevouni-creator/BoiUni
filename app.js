@@ -23,6 +23,10 @@ class AppController {
     this.editingAnimalId = null;
     this.editingClientId = null;
     this.authMode = 'login'; // 'login' ou 'signup'
+    
+    const today = new Date();
+    this.currentCalendarYear = today.getFullYear();
+    this.currentCalendarMonth = today.getMonth();
   }
 
   async init() {
@@ -168,6 +172,9 @@ class AppController {
         break;
       case 'configuracoes':
         this.loadConfiguracoesForm();
+        break;
+      case 'calendario':
+        this.renderCalendar();
         break;
     }
   }
@@ -2864,6 +2871,265 @@ class AppController {
 
     // Adiciona classe ativa no botão clicado
     if (buttonElement) buttonElement.classList.add('active');
+  }
+
+  // --- MÉTODOS DO CALENDÁRIO ---
+  renderCalendar() {
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    
+    const titleEl = document.getElementById('calendar-month-title');
+    if (titleEl) {
+      titleEl.textContent = `${monthNames[this.currentCalendarMonth]} de ${this.currentCalendarYear}`;
+    }
+    
+    window.ui.renderCalendarView(this.currentCalendarYear, this.currentCalendarMonth);
+    window.ui.renderCalendarChecklist(this.currentCalendarYear, this.currentCalendarMonth);
+  }
+
+  navigateCalendar(dir) {
+    this.currentCalendarMonth += dir;
+    if (this.currentCalendarMonth < 0) {
+      this.currentCalendarMonth = 11;
+      this.currentCalendarYear--;
+    } else if (this.currentCalendarMonth > 11) {
+      this.currentCalendarMonth = 0;
+      this.currentCalendarYear++;
+    }
+    this.renderCalendar();
+  }
+
+  openAgendaModal(dateStr = '') {
+    const form = document.getElementById('form-agenda');
+    if (form) form.reset();
+    
+    const agendaIdInput = document.getElementById('agenda-id');
+    if (agendaIdInput) agendaIdInput.value = '';
+    
+    const modalTitle = document.getElementById('modal-agenda-title');
+    if (modalTitle) {
+      modalTitle.innerHTML = '<i class="lucide-calendar-plus"></i> Agendar Manejo';
+    }
+    
+    const dateInput = document.getElementById('agenda-data');
+    if (dateInput) {
+      dateInput.value = dateStr || window.ui.todayString();
+    }
+    
+    const animalSelect = document.getElementById('agenda-animal-id');
+    if (animalSelect) {
+      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+      animalSelect.innerHTML = '<option value="">Todo o Rebanho (Geral)</option>' +
+        activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'}</option>`).join('');
+    }
+    
+    this.openModal('modal-agenda-form');
+  }
+
+  handleAgendaSubmit() {
+    const idVal = document.getElementById('agenda-id').value;
+    const titulo = document.getElementById('agenda-titulo').value;
+    const data = document.getElementById('agenda-data').value;
+    const tipo = document.getElementById('agenda-tipo').value;
+    const animalId = document.getElementById('agenda-animal-id').value || null;
+    const descricao = document.getElementById('agenda-descricao').value || '';
+    
+    if (!titulo || !data || !tipo) {
+      window.ui.showToast('Preencha os campos obrigatórios.', 'error');
+      return;
+    }
+
+    const agendaItem = {
+      titulo,
+      data,
+      tipo,
+      animal_id: animalId ? parseInt(animalId) : null,
+      descricao
+    };
+
+    window.db.addAgendaItem(agendaItem);
+    window.ui.showToast("Manejo agendado com sucesso!");
+    this.closeModal('modal-agenda-form');
+    
+    if (this.activeTab === 'calendario') {
+      this.renderCalendar();
+    }
+  }
+
+  showAgendaDetail(id) {
+    const allEvents = window.db.getAgenda() || [];
+    const event = allEvents.find(e => e.id === parseInt(id));
+    if (!event) return;
+    
+    document.getElementById('agenda-detail-id').value = event.id;
+    document.getElementById('agenda-detail-title').textContent = event.titulo;
+    document.getElementById('agenda-detail-data').textContent = window.ui.formatDate(event.data);
+    document.getElementById('agenda-detail-tipo').textContent = event.tipo;
+    
+    const statusEl = document.getElementById('agenda-detail-status');
+    if (statusEl) {
+      statusEl.textContent = event.status;
+      statusEl.className = `badge ${event.status === 'Concluído' ? 'badge-success' : 'badge-warning'}`;
+    }
+    
+    const animalRow = document.getElementById('agenda-detail-animal-row');
+    const animalEl = document.getElementById('agenda-detail-animal');
+    if (event.animal_id) {
+      const animal = window.db.getAnimal(event.animal_id);
+      if (animal) {
+        animalEl.innerHTML = `<a href="#" onclick="window.app.closeModal('modal-agenda-details'); window.app.showAnimalDetails(${animal.id}); return false;" style="color: var(--primary); text-decoration: underline;">Brinco ${animal.brinco} - ${animal.nome || 'Sem Nome'}</a>`;
+        if (animalRow) animalRow.style.display = 'flex';
+      } else {
+        if (animalRow) animalRow.style.display = 'none';
+      }
+    } else {
+      if (animalEl) animalEl.textContent = 'Todo o Rebanho (Geral)';
+      if (animalRow) animalRow.style.display = 'flex';
+    }
+    
+    const descEl = document.getElementById('agenda-detail-descricao');
+    if (descEl) {
+      descEl.textContent = event.descricao || 'Sem observações.';
+    }
+    
+    const completeBtn = document.getElementById('btn-agenda-complete');
+    if (completeBtn) {
+      completeBtn.textContent = event.status === 'Concluído' ? 'Marcar Pendente' : 'Marcar Concluído';
+    }
+    
+    this.openModal('modal-agenda-details');
+  }
+
+  deleteAgendaItemFromDetails() {
+    const idVal = document.getElementById('agenda-detail-id').value;
+    if (!idVal) return;
+    
+    if (confirm("Deseja realmente excluir este agendamento?")) {
+      window.db.deleteAgendaItem(idVal);
+      window.ui.showToast("Manejo excluído!");
+      this.closeModal('modal-agenda-details');
+      
+      if (this.activeTab === 'calendario') {
+        this.renderCalendar();
+      }
+    }
+  }
+
+  toggleAgendaStatusFromDetails() {
+    const idVal = document.getElementById('agenda-detail-id').value;
+    if (!idVal) return;
+    
+    const allEvents = window.db.getAgenda() || [];
+    const event = allEvents.find(e => e.id === parseInt(idVal));
+    if (!event) return;
+    
+    const newStatus = event.status === 'Concluído' ? 'Pendente' : 'Concluído';
+    window.db.updateAgendaItemStatus(idVal, newStatus);
+    window.ui.showToast(`Status atualizado para: ${newStatus}`);
+    
+    this.closeModal('modal-agenda-details');
+    
+    if (this.activeTab === 'calendario') {
+      this.renderCalendar();
+    }
+  }
+
+  toggleAgendaStatus(id, checked) {
+    const newStatus = checked ? 'Concluído' : 'Pendente';
+    window.db.updateAgendaItemStatus(id, newStatus);
+    window.ui.showToast(`Status atualizado para: ${newStatus}`);
+    
+    if (this.activeTab === 'calendario') {
+      this.renderCalendar();
+    }
+  }
+
+  // --- MÉTODOS DA GALERIA DE EVOLUÇÃO VISUAL & ZOOM ---
+  zoomImage(photoBase64) {
+    const img = document.getElementById('zoomed-image');
+    if (img) img.src = photoBase64;
+    this.openModal('modal-image-zoom');
+  }
+
+  handleDeletePhoto(photoId, animalId) {
+    if (confirm("Deseja realmente excluir esta foto?")) {
+      window.db.deleteAnimalPhoto(photoId);
+      window.ui.showToast("Foto excluída!");
+      window.ui.renderAnimalPhotoGallery(animalId);
+    }
+  }
+
+  handlePhotoUpload(event, stage, animalId) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max_size = 800;
+        
+        if (width > height) {
+          if (width > max_size) {
+            height *= max_size / width;
+            width = max_size;
+          }
+        } else {
+          if (height > max_size) {
+            width *= max_size / height;
+            height = max_size;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        
+        const today = window.ui.todayString();
+        window.db.addAnimalPhoto({
+          animal_id: animalId,
+          etapa: stage,
+          foto: compressedBase64,
+          data: today
+        });
+        
+        window.ui.showToast("Foto adicionada com sucesso!");
+        window.ui.renderAnimalPhotoGallery(animalId);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // --- CHECK-UP SANITÁRIO DE ENTRADA ---
+  quickApplyVaccine(vaccineName, animalId) {
+    if (!animalId) return;
+
+    const animalIdInput = document.getElementById('expense-animal-id');
+    if (animalIdInput) animalIdInput.value = animalId;
+
+    const tipoSelect = document.getElementById('expense-tipo');
+    if (tipoSelect) tipoSelect.value = 'Vacina';
+
+    const descInput = document.getElementById('expense-descricao');
+    if (descInput) descInput.value = vaccineName;
+
+    const valorInput = document.getElementById('expense-valor');
+    if (valorInput) valorInput.value = '0,00';
+
+    const dateInput = document.getElementById('expense-data');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+    this.populateMedicamentosDatalist();
+    this.openModal('modal-expense-form');
   }
 
   // Configura máscaras de digitação em tempo real (CPF, CNPJ, Telefone)

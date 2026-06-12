@@ -1049,6 +1049,12 @@ class UserInterface {
     // Renderiza o histórico sanitário e carência
     this.renderAnimalSanitaryHistory(animal.id);
 
+    // Renderiza o check-up sanitário de entrada
+    this.renderAnimalCheckupChecklist(animal.id);
+
+    // Renderiza a galeria de evolução visual
+    this.renderAnimalPhotoGallery(animal.id);
+
     if (window.lucide) {
       window.lucide.createIcons();
     }
@@ -1529,6 +1535,208 @@ class UserInterface {
         </button>
       </div>
     `).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  renderCalendarView(year, month) {
+    const grid = document.getElementById('calendar-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    const allEvents = window.db.getAgenda() || [];
+    
+    const firstDay = new Date(year, month, 1);
+    const startingDay = firstDay.getDay(); // 0 = Sunday, 1 = Monday...
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    let html = '';
+    
+    // Render prev month trailing days
+    for (let i = startingDay - 1; i >= 0; i--) {
+      const prevDay = prevMonthDays - i;
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+      html += this._renderDayCellHtml(prevYear, prevMonth, prevDay, true, allEvents, today);
+    }
+    
+    // Render current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      html += this._renderDayCellHtml(year, month, day, false, allEvents, today);
+    }
+    
+    // Render next month leading days
+    const totalCells = Math.ceil((startingDay + daysInMonth) / 7) * 7;
+    const remainingCells = totalCells - (startingDay + daysInMonth);
+    for (let day = 1; day <= remainingCells; day++) {
+      const nextMonth = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      html += this._renderDayCellHtml(nextYear, nextMonth, day, true, allEvents, today);
+    }
+    
+    grid.innerHTML = html;
+  }
+
+  _renderDayCellHtml(y, m, d, isOtherMonth, allEvents, today) {
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dayEvents = allEvents.filter(e => e.data === dateStr);
+    
+    const cellDate = new Date(y, m, d);
+    const isToday = cellDate.toDateString() === today.toDateString();
+    
+    let classes = 'calendar-day';
+    if (isOtherMonth) classes += ' other-month';
+    if (isToday) classes += ' today';
+    
+    let eventsHtml = '';
+    if (dayEvents.length > 0) {
+      eventsHtml = `<div class="day-events">` + dayEvents.map(e => `
+        <span class="event-badge event-badge-${e.tipo.toLowerCase()} ${e.status === 'Concluído' ? 'completed' : ''}" 
+              onclick="event.stopPropagation(); window.app.showAgendaDetail(${e.id})" 
+              title="${e.titulo}">
+          ${e.titulo}
+        </span>
+      `).join('') + `</div>`;
+    }
+    
+    return `
+      <div class="${classes}" onclick="window.app.openAgendaModal('${dateStr}')">
+        <span class="day-number">${d}</span>
+        ${eventsHtml}
+      </div>
+    `;
+  }
+
+  renderCalendarChecklist(year, month) {
+    const container = document.getElementById('calendar-checklist');
+    if (!container) return;
+
+    const allEvents = window.db.getAgenda() || [];
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthEvents = allEvents.filter(e => e.data.startsWith(monthPrefix));
+    
+    // Sort by date ascending
+    monthEvents.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    if (monthEvents.length === 0) {
+      container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 13px; margin: 20px 0;">Nenhum manejo agendado para este mês.</p>`;
+      return;
+    }
+
+    container.innerHTML = monthEvents.map(e => {
+      const isCompleted = e.status === 'Concluído';
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color); gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+            <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="window.app.toggleAgendaStatus(${e.id}, this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+            <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); text-decoration: ${isCompleted ? 'text-decoration: line-through' : 'none'}; text-decoration-line: ${isCompleted ? 'line-through' : 'none'}; opacity: ${isCompleted ? '0.6' : '1'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${e.titulo}">
+                ${e.titulo}
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted);">
+                ${this.formatDate(e.data)} • ${e.tipo}
+              </span>
+            </div>
+          </div>
+          <button class="action-btn btn-view btn-sm" onclick="window.app.showAgendaDetail(${e.id})" title="Detalhes" style="padding: 4px;">
+            <i class="lucide-eye" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  renderAnimalCheckupChecklist(animalId) {
+    const container = document.getElementById('profile-checkup-container');
+    if (!container) return;
+
+    const medicamentos = window.db.getMedicamentos() || [];
+    const expenses = window.db.getAnimalExpenses(animalId) || [];
+    const sanitaryExpenses = expenses.filter(e => e.tipo === 'Vacina' || e.tipo === 'Medicamento');
+
+    if (medicamentos.length === 0) {
+      container.innerHTML = `<p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 10px 0;">Nenhum item sanitário configurado em Configurações.</p>`;
+      return;
+    }
+
+    container.innerHTML = medicamentos.map(m => {
+      const hasTaken = sanitaryExpenses.some(e => (e.descricao || '').trim().toLowerCase() === m.nome.trim().toLowerCase());
+      
+      if (hasTaken) {
+        return `
+          <div class="checkup-item">
+            <div class="checkup-item-info">
+              <span class="checkup-status-icon done"><i class="lucide-check" style="width: 12px; height: 12px;"></i></span>
+              <span class="checkup-name">${m.nome}</span>
+            </div>
+            <span class="badge badge-success" style="font-size: 10px;">Aplicado</span>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="checkup-item">
+            <div class="checkup-item-info">
+              <span class="checkup-status-icon pending"><i class="lucide-x" style="width: 12px; height: 12px;"></i></span>
+              <span class="checkup-name">${m.nome}</span>
+            </div>
+            <button class="btn btn-primary btn-xs" onclick="window.app.quickApplyVaccine('${m.nome.replace(/'/g, "\\'")}', ${animalId})" style="padding: 2px 6px; font-size: 11px; font-weight: 700;">
+              Aplicar
+            </button>
+          </div>
+        `;
+      }
+    }).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  renderAnimalPhotoGallery(animalId) {
+    const wrapper = document.getElementById('profile-gallery-wrapper');
+    if (!wrapper) return;
+
+    const stages = ['Bezerro', 'Novilho', 'Garrote', 'Boi', 'Vaca', 'Outro'];
+    const photos = window.db.getAnimalPhotos(animalId) || [];
+
+    wrapper.innerHTML = stages.map(stage => {
+      const photo = photos.find(p => p.etapa === stage);
+      
+      if (photo) {
+        return `
+          <div class="gallery-card">
+            <span class="stage-label">${stage}</span>
+            <div class="gallery-image-container">
+              <img src="${photo.foto}" alt="${stage}" onclick="window.app.zoomImage('${photo.foto.replace(/'/g, "\\'")}')">
+            </div>
+            <span class="gallery-card-date">${this.formatDate(photo.data)}</span>
+            <button class="gallery-delete-btn" onclick="window.app.handleDeletePhoto(${photo.id}, ${animalId})" title="Deletar Foto">&times;</button>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="gallery-card">
+            <span class="stage-label">${stage}</span>
+            <div class="gallery-upload-btn" onclick="document.getElementById('gallery-input-${stage}-${animalId}').click()">
+              <i class="lucide-camera"></i>
+              <span>Anexar Foto</span>
+            </div>
+            <input type="file" accept="image/*" id="gallery-input-${stage}-${animalId}" style="display: none;" onchange="window.app.handlePhotoUpload(event, '${stage}', ${animalId})">
+            <span class="gallery-card-date">-</span>
+          </div>
+        `;
+      }
+    }).join('');
 
     if (window.lucide) {
       window.lucide.createIcons();
