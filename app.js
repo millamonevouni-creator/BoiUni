@@ -1517,6 +1517,219 @@ class AppController {
     // Cria uma nova janela de visualização e impressão
     const printWindow = window.open('', '_blank');
     
+    if (reportType === 'cronograma') {
+      const allEvents = window.db.getAgenda() || [];
+      
+      // Sort chronologically by date
+      allEvents.sort((a, b) => new Date(a.data + 'T00:00:00') - new Date(b.data + 'T00:00:00'));
+
+      const parseDateParts = (dateStr) => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return { year: y, month: m - 1, day: d };
+      };
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const currentQuarter = Math.floor(currentMonth / 3) + 1;
+      const currentSemester = currentMonth < 6 ? 1 : 2;
+
+      const quarterEvents = allEvents.filter(e => {
+        const { year, month } = parseDateParts(e.data);
+        const q = Math.floor(month / 3) + 1;
+        return year === currentYear && q === currentQuarter;
+      });
+
+      const semesterEvents = allEvents.filter(e => {
+        const { year, month } = parseDateParts(e.data);
+        const s = month < 6 ? 1 : 2;
+        return year === currentYear && s === currentSemester;
+      });
+
+      const annualEvents = allEvents.filter(e => {
+        const { year } = parseDateParts(e.data);
+        return year === currentYear;
+      });
+
+      const calcStats = (events) => {
+        const total = events.length;
+        const completed = events.filter(e => e.status === 'Concluído').length;
+        const pending = total - completed;
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        return { total, completed, pending, pct };
+      };
+
+      const quarterStats = calcStats(quarterEvents);
+      const semesterStats = calcStats(semesterEvents);
+      const annualStats = calcStats(annualEvents);
+      const totalStats = calcStats(allEvents);
+
+      const tableRowsHtml = allEvents.map(e => {
+        let animalText = 'Todo o Rebanho (Geral)';
+        if (e.animal_id) {
+          const animal = window.db.getAnimal(e.animal_id);
+          if (animal) {
+            animalText = `Brinco ${animal.brinco} ${animal.nome ? `- ${animal.nome}` : ''}`;
+          } else {
+            animalText = `ID: ${e.animal_id}`;
+          }
+        }
+        const statusClass = e.status === 'Concluído' ? 'text-green' : 'text-orange';
+        const formattedDate = window.ui.formatDate(e.data);
+        return `
+          <tr>
+            <td>${formattedDate}</td>
+            <td><strong>${e.titulo}</strong></td>
+            <td>${e.tipo}</td>
+            <td>${animalText}</td>
+            <td class="${statusClass}" style="font-weight: bold;">${e.status}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Cronograma de Manejo - BoiUni</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #15803d; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { margin: 0; color: #15803d; font-size: 26px; }
+            .header p { margin: 5px 0 0 0; color: #64748b; font-size: 14px; }
+            
+            .section-title { font-size: 16px; font-weight: bold; color: #15803d; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; }
+            
+            .summary-box { background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #15803d; }
+            .summary-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; color: #0f172a; }
+            .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+            .summary-item { display: flex; flex-direction: column; }
+            .summary-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+            .summary-value { font-size: 18px; font-weight: bold; }
+            
+            .periods-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+            .period-card { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+            .period-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #15803d; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+            .period-info { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; color: #475569; }
+            .period-info span.value { font-weight: 600; color: #0f172a; }
+            .period-progress { background-color: #e2e8f0; border-radius: 4px; height: 8px; margin-top: 10px; overflow: hidden; }
+            .period-progress-bar { background-color: #15803d; height: 100%; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th { background-color: #f1f5f9; color: #0f172a; text-align: left; padding: 12px; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+            td { padding: 12px; font-size: 13px; border-bottom: 1px solid #e2e8f0; }
+            tr:hover { background-color: #f8fafc; }
+            .text-green { color: #166534; }
+            .text-orange { color: #d97706; }
+            
+            .footer { margin-top: 45px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 10px; }
+              .periods-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+            }
+            .btn-print { background-color: #15803d; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>BoiUni - Gestão Agropecuária</h1>
+              <p>Cronograma e Planejamento de Manejos</p>
+            </div>
+            <div class="no-print">
+              <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
+            </div>
+          </div>
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 25px;">Relatório de cronograma de manejo gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+          
+          <div class="summary-box">
+            <div class="summary-title">Resumo Operacional Geral (Histórico Completo)</div>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Manejos Planejados</span>
+                <span class="summary-value">${totalStats.total}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Manejos Realizados</span>
+                <span class="summary-value text-green">${totalStats.completed}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Manejos Pendentes</span>
+                <span class="summary-value text-orange">${totalStats.pending}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Taxa de Conclusão</span>
+                <span class="summary-value">${totalStats.pct}%</span>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="section-title">Análise de Metas e Períodos (${currentYear})</h4>
+          <div class="periods-grid">
+            <div class="period-card">
+              <div class="period-title">Trimestre Atual (Q${currentQuarter})</div>
+              <div class="period-info"><span>Planejados:</span> <span class="value">${quarterStats.total}</span></div>
+              <div class="period-info"><span>Realizados:</span> <span class="value">${quarterStats.completed}</span></div>
+              <div class="period-info"><span>Pendentes:</span> <span class="value">${quarterStats.pending}</span></div>
+              <div class="period-info"><span>Conclusão:</span> <span class="value">${quarterStats.pct}%</span></div>
+              <div class="period-progress">
+                <div class="period-progress-bar" style="width: ${quarterStats.pct}%"></div>
+              </div>
+            </div>
+
+            <div class="period-card">
+              <div class="period-title">Semestre Atual (S${currentSemester})</div>
+              <div class="period-info"><span>Planejados:</span> <span class="value">${semesterStats.total}</span></div>
+              <div class="period-info"><span>Realizados:</span> <span class="value">${semesterStats.completed}</span></div>
+              <div class="period-info"><span>Pendentes:</span> <span class="value">${semesterStats.pending}</span></div>
+              <div class="period-info"><span>Conclusão:</span> <span class="value">${semesterStats.pct}%</span></div>
+              <div class="period-progress">
+                <div class="period-progress-bar" style="width: ${semesterStats.pct}%"></div>
+              </div>
+            </div>
+
+            <div class="period-card">
+              <div class="period-title">Balanço Geral do Ano (${currentYear})</div>
+              <div class="period-info"><span>Planejados:</span> <span class="value">${annualStats.total}</span></div>
+              <div class="period-info"><span>Realizados:</span> <span class="value">${annualStats.completed}</span></div>
+              <div class="period-info"><span>Pendentes:</span> <span class="value">${annualStats.pending}</span></div>
+              <div class="period-info"><span>Conclusão:</span> <span class="value">${annualStats.pct}%</span></div>
+              <div class="period-progress">
+                <div class="period-progress-bar" style="width: ${annualStats.pct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="section-title">Lista Geral de Atividades Planejadas</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Manejo</th>
+                <th>Tipo</th>
+                <th>Animal Vinculado</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml || '<tr><td colspan="5" style="text-align: center; color: #64748b;">Nenhum manejo agendado no calendário.</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>© 2026 BoiUni - Sistema de Controle de Rebanho Bovino.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      return;
+    }
+
     if (reportType === 'financeiro') {
       const costs = window.db.getPropertyCosts();
       const fatBruto = sales.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
@@ -2925,6 +3138,11 @@ class AppController {
         activeAnimals.map(a => `<option value="${a.id}">Brinco ${a.brinco} - ${a.nome || 'Sem Nome'}</option>`).join('');
     }
     
+    const recorrenciaSelect = document.getElementById('agenda-recorrencia');
+    if (recorrenciaSelect) {
+      recorrenciaSelect.value = 'Nenhuma';
+    }
+    
     this.openModal('modal-agenda-form');
   }
 
@@ -2935,22 +3153,64 @@ class AppController {
     const tipo = document.getElementById('agenda-tipo').value;
     const animalId = document.getElementById('agenda-animal-id').value || null;
     const descricao = document.getElementById('agenda-descricao').value || '';
+    const recorrencia = document.getElementById('agenda-recorrencia') ? document.getElementById('agenda-recorrencia').value : 'Nenhuma';
     
     if (!titulo || !data || !tipo) {
       window.ui.showToast('Preencha os campos obrigatórios.', 'error');
       return;
     }
 
-    const agendaItem = {
-      titulo,
-      data,
-      tipo,
-      animal_id: animalId ? parseInt(animalId) : null,
-      descricao
-    };
+    if (recorrencia !== 'Nenhuma') {
+      const recorrenciaGrupoId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      
+      const getRecurrenceDates = (startDateStr, freq) => {
+        const [year, month, day] = startDateStr.split('-').map(Number);
+        const dates = [startDateStr];
+        let step = 0;
+        let count = 0;
+        
+        if (freq === 'Mensal') { step = 1; count = 11; }
+        else if (freq === 'Trimestral') { step = 3; count = 3; }
+        else if (freq === 'Semestral') { step = 6; count = 1; }
+        else if (freq === 'Anual') { step = 12; count = 2; }
+        
+        for (let i = 1; i <= count; i++) {
+          const nextDate = new Date(year, month - 1, day);
+          nextDate.setMonth(nextDate.getMonth() + (i * step));
+          const y = nextDate.getFullYear();
+          const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+          const d = String(nextDate.getDate()).padStart(2, '0');
+          dates.push(`${y}-${m}-${d}`);
+        }
+        return dates;
+      };
 
-    window.db.addAgendaItem(agendaItem);
-    window.ui.showToast("Manejo agendado com sucesso!");
+      const dates = getRecurrenceDates(data, recorrencia);
+      dates.forEach(d => {
+        window.db.addAgendaItem({
+          titulo,
+          data: d,
+          tipo,
+          animal_id: animalId ? parseInt(animalId) : null,
+          descricao,
+          recorrencia,
+          recorrencia_grupo_id: recorrenciaGrupoId
+        });
+      });
+      window.ui.showToast("Série de manejos recorrentes agendada com sucesso!");
+    } else {
+      window.db.addAgendaItem({
+        titulo,
+        data,
+        tipo,
+        animal_id: animalId ? parseInt(animalId) : null,
+        descricao,
+        recorrencia: 'Nenhuma',
+        recorrencia_grupo_id: null
+      });
+      window.ui.showToast("Manejo agendado com sucesso!");
+    }
+
     this.closeModal('modal-agenda-form');
     
     if (this.activeTab === 'calendario') {
@@ -3006,13 +3266,37 @@ class AppController {
     const idVal = document.getElementById('agenda-detail-id').value;
     if (!idVal) return;
     
-    if (confirm("Deseja realmente excluir este agendamento?")) {
-      window.db.deleteAgendaItem(idVal);
-      window.ui.showToast("Manejo excluído!");
-      this.closeModal('modal-agenda-details');
-      
-      if (this.activeTab === 'calendario') {
-        this.renderCalendar();
+    const allEvents = window.db.getAgenda() || [];
+    const event = allEvents.find(e => e.id === parseInt(idVal));
+    if (!event) return;
+
+    if (event.recorrencia_grupo_id) {
+      if (confirm("Este manejo faz parte de uma série recorrente. Deseja excluir TODOS os manejos futuros desta série? (Ok = Sim, Cancelar = Apenas este)")) {
+        window.db.deleteAgendaSeries(event.recorrencia_grupo_id, event.data);
+        window.ui.showToast("Série de manejos excluída!");
+        this.closeModal('modal-agenda-details');
+        if (this.activeTab === 'calendario') {
+          this.renderCalendar();
+        }
+      } else {
+        if (confirm("Deseja excluir APENAS este compromisso individual?")) {
+          window.db.deleteAgendaItem(idVal);
+          window.ui.showToast("Manejo individual excluído!");
+          this.closeModal('agenda-detail-id'); // Wait, closeModal takes modal ID string, so modal-agenda-details
+          this.closeModal('modal-agenda-details');
+          if (this.activeTab === 'calendario') {
+            this.renderCalendar();
+          }
+        }
+      }
+    } else {
+      if (confirm("Deseja realmente excluir este agendamento?")) {
+        window.db.deleteAgendaItem(idVal);
+        window.ui.showToast("Manejo excluído!");
+        this.closeModal('modal-agenda-details');
+        if (this.activeTab === 'calendario') {
+          this.renderCalendar();
+        }
       }
     }
   }

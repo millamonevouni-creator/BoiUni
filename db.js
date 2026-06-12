@@ -1025,7 +1025,9 @@ class LocalDB {
       ...item,
       id: this._nextId(DB_KEYS.AGENDA_MANEJO),
       animal_id: item.animal_id ? parseInt(item.animal_id) : null,
-      status: item.status || 'Pendente'
+      status: item.status || 'Pendente',
+      recorrencia: item.recorrencia || 'Nenhuma',
+      recorrencia_grupo_id: item.recorrencia_grupo_id || null
     };
     data.push(newItem);
     this._set(DB_KEYS.AGENDA_MANEJO, data);
@@ -1038,7 +1040,9 @@ class LocalDB {
         tipo: newItem.tipo,
         descricao: newItem.descricao || '',
         status: newItem.status,
-        animal_id: newItem.animal_id
+        animal_id: newItem.animal_id,
+        recorrencia: newItem.recorrencia,
+        recorrencia_grupo_id: newItem.recorrencia_grupo_id
       }).then(({ error }) => {
         if (error) console.error("Erro ao salvar compromisso no Supabase:", error);
       });
@@ -1072,6 +1076,21 @@ class LocalDB {
       supabaseClient.from('agenda_manejo').delete().eq('id', parseInt(id))
         .then(({ error }) => {
           if (error) console.error("Erro ao deletar compromisso no Supabase:", error);
+        });
+    }
+  }
+
+  deleteAgendaSeries(grupoId, fromDate) {
+    let data = this.getAgenda();
+    data = data.filter(i => !(i.recorrencia_grupo_id === grupoId && i.data >= fromDate));
+    this._set(DB_KEYS.AGENDA_MANEJO, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('agenda_manejo').delete()
+        .eq('recorrencia_grupo_id', grupoId)
+        .gte('data', fromDate)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar série de compromissos no Supabase:", error);
         });
     }
   }

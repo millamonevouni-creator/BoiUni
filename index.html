@@ -1354,6 +1354,17 @@
             </button>
           </div>
 
+          <div class="report-item-card">
+            <div class="report-icon-title">
+              <i class="lucide-calendar-days"></i>
+              <h4>Cronograma de Manejo</h4>
+            </div>
+            <p class="report-desc">Relatório de atividades agendadas e concluídas (Vacinações, Pesagens, Manejos), com filtros por períodos trimestral, semestral ou anual.</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.printReport('cronograma')">
+              <i class="lucide-printer"></i> Imprimir / PDF
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -2102,6 +2113,17 @@
                   <option value="Outro">Outro</option>
                 </select>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label for="agenda-recorrencia">Recorrência *</label>
+              <select id="agenda-recorrencia" name="recorrencia" style="width:100%;">
+                <option value="Nenhuma">Não se repete</option>
+                <option value="Mensal">Repetir Mensalmente</option>
+                <option value="Trimestral">Repetir Trimestralmente</option>
+                <option value="Semestral">Repetir Semestralmente</option>
+                <option value="Anual">Repetir Anualmente</option>
+              </select>
             </div>
 
             <div class="form-group">
