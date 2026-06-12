@@ -80,9 +80,11 @@
               <div class="mockup-logo-part"><i class="lucide-cow"></i> BoiUni</div>
               <div class="mockup-menu-item active" data-mock-tab="dashboard"></div>
               <div class="mockup-menu-item" data-mock-tab="weight"></div>
-              <div class="mockup-menu-item" data-mock-tab="reproducao"></div>
+              <div class="mockup-menu-item" data-mock-tab="calendario"></div>
+              <div class="mockup-menu-item" data-mock-tab="sanitario"></div>
+              <div class="mockup-menu-item" data-mock-tab="galeria"></div>
               <div class="mockup-menu-item" data-mock-tab="financial"></div>
-              <div class="mockup-menu-item" data-mock-tab="reports"></div>
+              <div class="mockup-menu-item" data-mock-tab="reproducao"></div>
             </div>
             
             <div class="mockup-main">
@@ -139,8 +141,86 @@
                   </div>
                 </div>
               </div>
+
+              <!-- 3. CALENDARIO VIEW -->
+              <div class="mockup-view" id="mockup-view-calendario">
+                <div class="mockup-grid" style="grid-template-columns: 1fr; gap: 8px;">
+                  <div class="mockup-card" style="padding: 8px;">
+                    <span class="mock-card-lbl" style="font-size: 9px;">Manejo Mensal</span>
+                    <span class="mock-card-val" style="font-size: 13px; color: var(--primary);">Vacinação Contra Febre Aftosa</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 6px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 8px; text-align: center; font-weight: 700; color: var(--text-muted);">
+                    <div style="padding: 3px; border: 1px solid var(--border-color); border-radius: 3px; background-color: var(--primary-light); color: var(--primary);">13<br>Qui</div>
+                    <div style="padding: 3px; border: 1px solid var(--border-color); border-radius: 3px;">14<br>Sex</div>
+                    <div style="padding: 3px; border: 1px solid var(--accent); border-radius: 3px; background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent);">15<br>Sáb</div>
+                    <div style="padding: 3px; border: 1px solid var(--border-color); border-radius: 3px;">16<br>Dom</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. SANITARIO VIEW -->
+              <div class="mockup-view" id="mockup-view-sanitario">
+                <div class="mockup-grid" style="grid-template-columns: 1fr; gap: 8px;">
+                  <div class="mockup-card" style="padding: 8px; border-left: 3px solid var(--danger);">
+                    <span class="mock-card-lbl" style="font-size: 9px;">Alerta Sanitário</span>
+                    <span class="mock-card-val" style="font-size: 13px; color: var(--danger);">⚠️ Período de Carência</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 6px; font-size: 8px; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Ivermectina 1%</span><span style="color: var(--danger); font-weight: 700;">12d Restantes</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Vacina Raiva</span><span style="color: var(--success); font-weight: 700;">✓ Liberado</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. GALERIA VIEW -->
+              <div class="mockup-view" id="mockup-view-galeria">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr; gap: 6px;">
+                  <div class="mockup-card" style="padding: 6px;">
+                    <span class="mock-card-lbl" style="font-size: 8px;">Estágio: Bezerro</span>
+                    <div style="height: 25px; border-radius: 3px; background-color: var(--bg-app); display: flex; align-items: center; justify-content: center; font-size: 12px;">🐂</div>
+                  </div>
+                  <div class="mockup-card" style="padding: 6px;">
+                    <span class="mock-card-lbl" style="font-size: 8px;">Estágio: Boi/Vaca</span>
+                    <div style="height: 25px; border-radius: 3px; background-color: var(--bg-app); display: flex; align-items: center; justify-content: center; font-size: 12px;">🐃</div>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 6px; display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 9px; color: var(--text-muted); text-align: center;">Galeria de Fotos de Crescimento</span>
+                </div>
+              </div>
               
-              <!-- 3. REPRODUCTION VIEW -->
+              <!-- 6. FINANCIAL VIEW -->
+              <div class="mockup-view" id="mockup-view-financial">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="mockup-card" style="border-left-color: var(--success); padding: 6px;">
+                    <span class="mock-card-lbl">Receita Vendas</span>
+                    <span class="mock-card-val" style="color: var(--success); font-size: 12px;">R$ 84k</span>
+                  </div>
+                  <div class="mockup-card" style="border-left-color: var(--danger); padding: 6px;">
+                    <span class="mock-card-lbl">Despesas Totais</span>
+                    <span class="mock-card-val" style="color: var(--danger); font-size: 12px;">R$ 32k</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 4px; font-size: 8px; display: flex; flex-direction: column; gap: 3px;">
+                  <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 2px;">
+                    <span>Demonstrativo DRE</span><span>Resultado</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Lucro Operacional</span><span>R$ 52.000</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; color: var(--success); font-weight: 700; border-top: 1px dashed var(--border-color); padding-top: 2px;">
+                    <span>Lucro Líquido</span><span>+ R$ 20.000</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 7. REPRODUCTION VIEW -->
               <div class="mockup-view" id="mockup-view-reproducao">
                 <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
                   <div class="mockup-card">
@@ -160,48 +240,6 @@
                   </div>
                 </div>
               </div>
-              
-              <!-- 4. FINANCIAL VIEW -->
-              <div class="mockup-view" id="mockup-view-financial">
-                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
-                  <div class="mockup-card" style="border-left-color: var(--primary);">
-                    <span class="mock-card-lbl">Vendas</span>
-                    <span class="mock-card-val" style="color: var(--primary);">R$ 48k</span>
-                  </div>
-                  <div class="mockup-card" style="border-left-color: var(--danger);">
-                    <span class="mock-card-lbl">Compras</span>
-                    <span class="mock-card-val" style="color: var(--danger);">R$ 18k</span>
-                  </div>
-                </div>
-                <div class="mockup-chart-area" style="padding: 6px;">
-                  <div class="mock-table">
-                    <div class="mock-table-row header">
-                      <span>Animal</span><span>Preço</span>
-                    </div>
-                    <div class="mock-table-row">
-                      <span>Brinco 402</span><span>R$ 4.200</span>
-                    </div>
-                    <div class="mock-table-row">
-                      <span>Brinco 350</span><span>R$ 3.800</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 5. REPORTS VIEW -->
-              <div class="mockup-view" id="mockup-view-reports">
-                <div class="mockup-report-sheet">
-                  <div class="mock-sheet-header">
-                    <span>BOIUNI - RELATÓRIO DO REBANHO</span>
-                  </div>
-                  <div class="mock-sheet-lines">
-                    <div class="mock-sheet-line" style="width: 80%;"></div>
-                    <div class="mock-sheet-line" style="width: 95%;"></div>
-                    <div class="mock-sheet-line" style="width: 60%;"></div>
-                    <div class="mock-sheet-line" style="width: 75%;"></div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -215,26 +253,39 @@
         <h3>Tudo o que você precisa para gerenciar seu rebanho</h3>
         <p>Funcionalidades essenciais sem a complexidade de sistemas pesados e caros.</p>
       </div>
-      <div class="features-grid">
-        <div class="feature-card" data-feature="weight" style="cursor: pointer;">
+      <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <div class="feature-card active" data-feature="weight" style="cursor: pointer;">
           <div class="feature-icon"><i class="lucide-scale"></i></div>
-          <h4>Controle de Peso (GMD)</h4>
-          <p>Acompanhe a evolução do peso de cada boi ou vaca e veja o Ganho Médio Diário automaticamente em gráficos interativos.</p>
+          <h4>Controle de Peso e GMD</h4>
+          <p>Monitore o peso e o Ganho Médio Diário (GMD) automaticamente com gráficos intuitivos de engorda.</p>
+        </div>
+        <div class="feature-card" data-feature="calendario" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-calendar"></i></div>
+          <h4>Calendário de Manejo</h4>
+          <p>Agende pesagens, vacinações e manejos periódicos com lembretes automáticos em um checklist mensal.</p>
+        </div>
+        <div class="feature-card" data-feature="sanitario" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-clipboard-check"></i></div>
+          <h4>Check-up & Carência</h4>
+          <p>Evite prejuízos. Acompanhe a carência de medicamentos e seja alertado antes de vender animais medicados.</p>
+        </div>
+        <div class="feature-card" data-feature="galeria" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-image"></i></div>
+          <h4>Evolução Visual</h4>
+          <p>Anexe fotos de cada fase de crescimento do animal (Bezerro, Novilho, Garrote, Boi/Vaca) com compressão inteligente.</p>
+        </div>
+        <div class="feature-card" data-feature="financial" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-trending-up"></i></div>
+          <h4>Balanço Financeiro DRE</h4>
+          <p>Tenha uma DRE estruturada com faturamento, descontos, custo de animais e métricas zootécnicas integradas.</p>
         </div>
         <div class="feature-card" data-feature="reproducao" style="cursor: pointer;">
           <div class="feature-icon"><i class="lucide-baby"></i></div>
-          <h4>Nascimentos & Reprodução</h4>
-          <p>Registre novos nascimentos informando matriz (mãe) e reprodutor (pai), criando a árvore de genealogia do bezerro.</p>
+          <h4>Genealogia & Nascimentos</h4>
+          <p>Cadastre nascimentos, mapeie a árvore genealógica de matrizes e reprodutores e controle a evolução de partos.</p>
         </div>
-        <div class="feature-card" data-feature="financial" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-arrow-left-right"></i></div>
-          <h4>Compras e Vendas</h4>
-          <p>Controle financeiro simples de entradas e saídas de animais com cálculo automático de lucro baseado nos valores de compra.</p>
-        </div>
-        <div class="feature-card" data-feature="reports" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-file-text"></i></div>
-          <h4>Relatórios Prontos para PDF</h4>
-          <p>Gere listas de estoque ativo, animais vendidos, nascimentos ocorridos e ganho de peso em um clique prontos para imprimir.</p>
+      </div>
+    </section>
         </div>
       </div>
     </section>
