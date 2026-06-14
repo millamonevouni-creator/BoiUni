@@ -1980,6 +1980,7 @@ class AppController {
 
     // Cria uma nova janela de visualização e impressão
     const printWindow = window.open('', '_blank');
+    let customBody = '';
     
     if (reportType === 'cronograma') {
       const allEvents = window.db.getAgenda() || [];
@@ -2706,6 +2707,286 @@ class AppController {
           `;
         }).join('');
       }
+    } else if (reportType === 'fluxo_estoque') {
+      title = 'Relatório Consolidado: Fluxo de Caixa, Custos & Insumos';
+      
+      const compromissos = window.db.getCompromissos() || [];
+      const costs = window.db.getPropertyCosts() || [];
+      const insumos = window.db.getEstoqueInsumos() || [];
+      const hojeStr = new Date().toISOString().split('T')[0];
+
+      // 1. Cálculos de Compromissos (Fluxo de Caixa)
+      let totalPagarPendente = 0;
+      let totalReceberPendente = 0;
+      let totalPagoRealizado = 0;
+      let totalRecebidoRealizado = 0;
+      let totalAtrasadoPagar = 0;
+      let totalAtrasadoReceber = 0;
+
+      compromissos.forEach(c => {
+        const val = parseFloat(c.valor) || 0;
+        if (c.status === 'Pago') {
+          if (c.tipo === 'Pagar') totalPagoRealizado += val;
+          else if (c.tipo === 'Receber') totalRecebidoRealizado += val;
+        } else { // Pendente
+          if (c.tipo === 'Pagar') {
+            totalPagarPendente += val;
+            if (c.vencimento < hojeStr) totalAtrasadoPagar += val;
+          } else if (c.tipo === 'Receber') {
+            totalReceberPendente += val;
+            if (c.vencimento < hojeStr) totalAtrasadoReceber += val;
+          }
+        }
+      });
+
+      const saldoRealizado = totalRecebidoRealizado - totalPagoRealizado;
+      const saldoProjetado = (totalRecebidoRealizado + totalReceberPendente) - (totalPagoRealizado + totalPagarPendente);
+
+      // 2. Cálculos de Custos Operacionais
+      const categoriesSum = {
+        'Funcionários': 0,
+        'Alimentação Geral': 0,
+        'Manutenção': 0,
+        'Combustível': 0,
+        'Energia/Água': 0,
+        'Impostos/Taxas': 0,
+        'Vacinas/Medicamentos Geral': 0,
+        'Outros': 0
+      };
+      
+      let totalCustosOperacionais = 0;
+      costs.forEach(c => {
+        const val = parseFloat(c.valor) || 0;
+        totalCustosOperacionais += val;
+        const cat = c.categoria;
+        if (categoriesSum[cat] !== undefined) {
+          categoriesSum[cat] += val;
+        } else {
+          categoriesSum['Outros'] += val;
+        }
+      });
+
+      // 3. Montando HTML customizado
+      
+      // Cards Resumo Financeiro
+      const cardsHtml = `
+        <div class="summary-box">
+          <div class="summary-title">Demonstrativo Financeiro do Fluxo de Caixa</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="summary-label">Saldo Realizado (Recebido - Pago)</span>
+              <span class="summary-value" style="color: ${saldoRealizado >= 0 ? '#166534' : '#991b1b'};">${window.ui.formatCurrency(saldoRealizado)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Saldo Projetado (Incluindo Pendentes)</span>
+              <span class="summary-value" style="color: ${saldoProjetado >= 0 ? '#166534' : '#991b1b'};">${window.ui.formatCurrency(saldoProjetado)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Total Recebido Realizado</span>
+              <span class="summary-value" style="color: #166534;">${window.ui.formatCurrency(totalRecebidoRealizado)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Total Pago Realizado</span>
+              <span class="summary-value" style="color: #991b1b;">${window.ui.formatCurrency(totalPagoRealizado)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">A Pagar Pendente (Atrasado: ${window.ui.formatCurrency(totalAtrasadoPagar)})</span>
+              <span class="summary-value" style="color: #d97706;">${window.ui.formatCurrency(totalPagarPendente)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">A Receber Pendente (Atrasado: ${window.ui.formatCurrency(totalAtrasadoReceber)})</span>
+              <span class="summary-value" style="color: #2563eb;">${window.ui.formatCurrency(totalReceberPendente)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Tabela de Compromissos
+      compromissos.sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento));
+      const compromissosRows = compromissos.map(c => {
+        let badgeClass = 'color: #d97706; font-weight: bold;'; // Pendente
+        let statusLabel = 'Pendente';
+        if (c.status === 'Pago') {
+          badgeClass = 'color: #166534; font-weight: bold;';
+          statusLabel = c.tipo === 'Pagar' ? 'Pago' : 'Recebido';
+        } else if (c.vencimento < hojeStr) {
+          badgeClass = 'color: #991b1b; font-weight: bold;';
+          statusLabel = 'Atrasado';
+        }
+
+        return `
+          <tr>
+            <td>${window.ui.formatDate(c.vencimento)}</td>
+            <td><strong>${window.ui.escapeHTML(c.descricao)}</strong></td>
+            <td>${window.ui.escapeHTML(c.categoria)}</td>
+            <td>
+              <span style="font-weight: 600; color: ${c.tipo === 'Pagar' ? '#991b1b' : '#166534'}">
+                ${c.tipo === 'Pagar' ? 'Saída (A Pagar)' : 'Entrada (A Receber)'}
+              </span>
+            </td>
+            <td style="font-weight: bold; color: ${c.tipo === 'Pagar' ? '#991b1b' : '#166534'}">${window.ui.formatCurrency(c.valor)}</td>
+            <td style="${badgeClass}">${statusLabel}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const compromissosTable = `
+        <h4 class="section-title">Compromissos Financeiros (Contas a Pagar / Receber)</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Vencimento</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Tipo</th>
+              <th>Valor</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${compromissosRows || '<tr><td colspan="6" style="text-align: center; color: #64748b;">Nenhum compromisso financeiro cadastrado.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+
+      // Custos Operacionais por Categoria
+      const custosCategoriesRows = Object.entries(categoriesSum).map(([cat, val]) => {
+        const pct = totalCustosOperacionais > 0 ? ((val / totalCustosOperacionais) * 100).toFixed(1) : '0.0';
+        return `
+          <tr>
+            <td><strong>${cat}</strong></td>
+            <td style="font-weight: bold; text-align: right;">${window.ui.formatCurrency(val)}</td>
+            <td style="text-align: right;">${pct}%</td>
+          </tr>
+        `;
+      }).join('');
+
+      const custosDetalhamentoRows = costs.slice(0, 50).map(c => `
+        <tr>
+          <td>${window.ui.formatDate(c.data)}</td>
+          <td>${window.ui.escapeHTML(c.categoria)}</td>
+          <td>${window.ui.escapeHTML(c.descricao || '-')}</td>
+          <td style="text-align: right; font-weight: 600; color: #991b1b;">${window.ui.formatCurrency(c.valor)}</td>
+        </tr>
+      `).join('');
+
+      const custosCategoriesTable = `
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; margin-top: 30px; page-break-inside: avoid;">
+          <div>
+            <h4 class="section-title">Custos Operacionais por Categoria</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th style="text-align: right;">Total Lançado</th>
+                  <th style="text-align: right;">% Part.</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${custosCategoriesRows}
+                <tr style="background-color: #f1f5f9; font-weight: bold;">
+                  <td>TOTAL OPERACIONAL</td>
+                  <td style="text-align: right; color: #991b1b;">${window.ui.formatCurrency(totalCustosOperacionais)}</td>
+                  <td style="text-align: right;">100.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h4 class="section-title">Detalhamento de Custos Lançados</h4>
+            <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+              <table style="margin-top: 0; width: 100%;">
+                <thead>
+                  <tr style="position: sticky; top: 0; background-color: #f1f5f9; z-index: 10;">
+                    <th>Data</th>
+                    <th>Categoria</th>
+                    <th>Descrição</th>
+                    <th style="text-align: right;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${custosDetalhamentoRows || '<tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhum custo operacional lançado.</td></tr>'}
+                  ${costs.length > 50 ? `<tr><td colspan="4" style="text-align: center; color: #64748b; font-size: 11px;">Exibindo os primeiros 50 registros...</td></tr>` : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Estoque de Insumos
+      const insumosRows = insumos.map(item => {
+        const qty = parseFloat(item.quantidade) || 0;
+        const minQty = parseFloat(item.estoque_minimo) || 0;
+        const hasExpiry = !!item.validade;
+        
+        let isExpired = false;
+        let isExpiryNear = false;
+        if (hasExpiry) {
+          isExpired = item.validade < hojeStr;
+          if (!isExpired) {
+            const expDate = new Date(item.validade + 'T00:00:00');
+            const current = new Date(hojeStr + 'T00:00:00');
+            const diffDays = Math.ceil((expDate - current) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 30) {
+              isExpiryNear = true;
+            }
+          }
+        }
+
+        let statusText = '✓ Normal';
+        let statusStyle = 'color: #166534; font-weight: bold;';
+
+        if (isExpired) {
+          statusText = '❌ Expirado';
+          statusStyle = 'color: #991b1b; font-weight: bold;';
+        } else if (isExpiryNear) {
+          statusText = '⚠️ Validade Próxima';
+          statusStyle = 'color: #d97706; font-weight: bold;';
+        } else if (qty <= minQty) {
+          statusText = '⚠️ Estoque Baixo';
+          statusStyle = 'color: #b45309; font-weight: bold;';
+        }
+
+        return `
+          <tr>
+            <td><strong>${window.ui.escapeHTML(item.nome)}</strong></td>
+            <td>${window.ui.escapeHTML(item.tipo)}</td>
+            <td>${qty} ${window.ui.escapeHTML(item.unidade || 'kg')}</td>
+            <td>${minQty} ${window.ui.escapeHTML(item.unidade || 'kg')}</td>
+            <td>${item.lote ? window.ui.escapeHTML(item.lote) : '-'}</td>
+            <td>${hasExpiry ? window.ui.formatDate(item.validade) : 'Não Controlado'}</td>
+            <td style="${statusStyle}">${statusText}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const insumosTable = `
+        <h4 class="section-title" style="margin-top: 40px; page-break-before: always;">Controle de Estoque de Insumos</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Insumo</th>
+              <th>Tipo</th>
+              <th>Qtd. Atual</th>
+              <th>Qtd. Mínima</th>
+              <th>Lote</th>
+              <th>Validade</th>
+              <th>Status / Alerta</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${insumosRows || '<tr><td colspan="7" style="text-align: center; color: #64748b;">Nenhum insumo cadastrado no estoque físico.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+
+      customBody = `
+        ${cardsHtml}
+        ${compromissosTable}
+        ${custosCategoriesTable}
+        ${insumosTable}
+      `;
     }
 
     const htmlContent = `
@@ -2722,9 +3003,18 @@ class AppController {
           th { background-color: #f1f5f9; color: #0f1c15; text-align: left; padding: 12px; font-size: 12px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
           td { padding: 12px; font-size: 14px; border-bottom: 1px solid #e2e8f0; }
           tr:hover { background-color: #f8fafc; }
+          .summary-box { background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #15803d; }
+          .summary-title { font-weight: bold; font-size: 15px; margin-bottom: 10px; color: #0f172a; }
+          .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+          .summary-item { display: flex; flex-direction: column; }
+          .summary-label { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+          .summary-value { font-size: 16px; font-weight: bold; }
+          .section-title { font-size: 16px; font-weight: bold; color: #15803d; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; }
           .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
           @media print {
             .no-print { display: none; }
+            body { padding: 10px; }
+            .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
           }
           .btn-print { background-color: #15803d; color: white; border: none; padding: 10px 20px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
         </style>
@@ -2740,6 +3030,8 @@ class AppController {
           </div>
         </div>
         <p style="font-size: 13px; color: #64748b;">Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
+        
+        ${reportType === 'fluxo_estoque' ? customBody : `
         <table>
           <thead>
             <tr>${tableHeaders}</tr>
@@ -2748,6 +3040,7 @@ class AppController {
             ${tableRows}
           </tbody>
         </table>
+        `}
         <div class="footer">
           <p>© 2026 BoiUni - Sistema de Controle de Rebanho Bovino.</p>
         </div>
