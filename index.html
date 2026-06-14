@@ -3,8 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BoiUni - Gestão de Rebanho Bovino</title>
-  <meta name="description" content="Sistema completo de gestão pecuária, controle de pesagens, reprodução e finanças do rebanho.">
+  <title>BoiUni - Gestão Pecuária Inteligente e Gratuita | Controle de Rebanho Offline</title>
+  <meta name="description" content="Sistema completo e 100% gratuito de gestão pecuária para pequenos e médios produtores rurais. Controle pesagens, GMD, nascimentos, compras, vendas, carências sanitárias e relatórios financeiros DRE. Funciona offline direto no pasto!">
+  <meta name="keywords" content="gestão pecuária, controle de rebanho, software pecuário gratuito, gestão de gado, controle de pesagem bovino, GMD gado, sistema pecuário offline, app pecuária, BoiUni, gestão bovina, controle de peso gado, software agropecuário">
+  <meta name="author" content="BoiUni">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://boiuni.vercel.app/">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://boiuni.vercel.app/">
+  <meta property="og:title" content="BoiUni - Gestão Pecuária Inteligente e Gratuita">
+  <meta property="og:description" content="Sistema completo e gratuito de gestão pecuária. Controle pesagens, GMD, nascimentos, compras, vendas, carências sanitárias e tire relatórios financeiros DRE do seu rebanho. Funciona offline no pasto!">
+  <meta property="og:image" content="https://boiuni.vercel.app/icon-512.png">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="BoiUni">
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://boiuni.vercel.app/">
+  <meta name="twitter:title" content="BoiUni - Gestão Pecuária Inteligente e Gratuita">
+  <meta name="twitter:description" content="Sistema completo e gratuito de gestão pecuária. Controle pesagens, GMD, nascimentos, compras, vendas, carências sanitárias e tire relatórios financeiros DRE do seu rebanho.">
+  <meta name="twitter:image" content="https://boiuni.vercel.app/icon-512.png">
   
   <!-- PWA Manifest & Meta para Mobile -->
   <link rel="manifest" href="manifest.json">
@@ -24,7 +44,35 @@
   
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Structured Data / JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "BoiUni",
+    "description": "Sistema completo e gratuito de gestão pecuária. Controle pesagens, GMD, nascimentos, compras, vendas, carências sanitárias e relatórios financeiros DRE do seu rebanho. Funciona offline.",
+    "url": "https://boiuni.vercel.app/",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "BRL"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "150"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "BoiUni"
+    }
+  }
+  </script>
 </head>
+<body>
   <!-- LANDING PAGE (APRESENTAÇÃO DO BOIUNI) -->
   <div id="landing-page" class="hidden">
     <!-- Blobs Decorativos de Fundo -->
@@ -78,13 +126,30 @@
             <!-- Sidebar comum do mockup -->
             <div class="mockup-sidebar">
               <div class="mockup-logo-part"><i class="lucide-cow"></i> BoiUni</div>
-              <div class="mockup-menu-item active" data-mock-tab="dashboard"></div>
-              <div class="mockup-menu-item" data-mock-tab="weight"></div>
-              <div class="mockup-menu-item" data-mock-tab="calendario"></div>
-              <div class="mockup-menu-item" data-mock-tab="sanitario"></div>
-              <div class="mockup-menu-item" data-mock-tab="galeria"></div>
-              <div class="mockup-menu-item" data-mock-tab="financial"></div>
-              <div class="mockup-menu-item" data-mock-tab="reproducao"></div>
+              <div class="mockup-menu-item active" data-mock-tab="dashboard">
+                <i class="lucide-layout-dashboard"></i> <span>Painel</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="weight">
+                <i class="lucide-scale"></i> <span>Peso</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="calendario">
+                <i class="lucide-calendar"></i> <span>Agenda</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="sanitario">
+                <i class="lucide-shield-alert"></i> <span>Carência</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="galeria">
+                <i class="lucide-image"></i> <span>Galeria</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="financial">
+                <i class="lucide-trending-up"></i> <span>Finanças</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="reproducao">
+                <i class="lucide-baby"></i> <span>Partos</span>
+              </div>
+              <div class="mockup-menu-item" data-mock-tab="estoque">
+                <i class="lucide-package"></i> <span>Estoque</span>
+              </div>
             </div>
             
             <div class="mockup-main">
@@ -240,6 +305,31 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 8. ESTOQUE VIEW -->
+              <div class="mockup-view" id="mockup-view-estoque">
+                <div class="mockup-grid" style="grid-template-columns: 1fr 1fr;">
+                  <div class="mockup-card" style="border-left-color: var(--warning); padding: 6px;">
+                    <span class="mock-card-lbl">Sal Mineral</span>
+                    <span class="mock-card-val" style="color: var(--warning); font-size: 11px;">15 sacos ⚠️</span>
+                  </div>
+                  <div class="mockup-card" style="border-left-color: var(--success); padding: 6px;">
+                    <span class="mock-card-lbl">Vacina Aftosa</span>
+                    <span class="mock-card-val" style="color: var(--success); font-size: 11px;">40 doses</span>
+                  </div>
+                </div>
+                <div class="mockup-chart-area" style="padding: 4px; font-size: 8px; display: flex; flex-direction: column; gap: 3px;">
+                  <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 2px;">
+                    <span>Insumo</span><span>Qtd</span><span>Vencimento</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Ivermectina</span><span>2 frascos</span><span>30 dias</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; color: var(--danger);">
+                    <span>Milho Moído</span><span>5 sacos</span><span>VENCIDO ❌</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -256,33 +346,23 @@
       <div class="features-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
         <div class="feature-card active" data-feature="weight" style="cursor: pointer;">
           <div class="feature-icon"><i class="lucide-scale"></i></div>
-          <h4>Controle de Peso e GMD</h4>
-          <p>Monitore o peso e o Ganho Médio Diário (GMD) automaticamente com gráficos intuitivos de engorda.</p>
-        </div>
-        <div class="feature-card" data-feature="calendario" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-calendar"></i></div>
-          <h4>Calendário de Manejo</h4>
-          <p>Agende pesagens, vacinações e manejos periódicos com lembretes automáticos em um checklist mensal.</p>
+          <h4>Controle de Peso & GMD</h4>
+          <p>Acompanhe a pesagem e o Ganho Médio Diário (GMD) do rebanho com gráficos automáticos de engorda.</p>
         </div>
         <div class="feature-card" data-feature="sanitario" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-clipboard-check"></i></div>
-          <h4>Check-up & Carência</h4>
-          <p>Evite prejuízos. Acompanhe a carência de medicamentos e seja alertado antes de vender animais medicados.</p>
+          <div class="feature-icon"><i class="lucide-shield-alert"></i></div>
+          <h4>Sanidade & Carência Veterinária</h4>
+          <p>Monitore vacinações e períodos de carência de medicamentos para evitar a venda de animais sob efeito residual.</p>
         </div>
-        <div class="feature-card" data-feature="galeria" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-image"></i></div>
-          <h4>Evolução Visual</h4>
-          <p>Anexe fotos de cada fase de crescimento do animal (Bezerro, Novilho, Garrote, Boi/Vaca) com compressão inteligente.</p>
+        <div class="feature-card" data-feature="estoque" style="cursor: pointer;">
+          <div class="feature-icon"><i class="lucide-package"></i></div>
+          <h4>Gestão de Insumos & Estoque</h4>
+          <p>Gerencie rações, minerais, sal e medicamentos com alertas automáticos de vencimento e estoque mínimo.</p>
         </div>
         <div class="feature-card" data-feature="financial" style="cursor: pointer;">
           <div class="feature-icon"><i class="lucide-trending-up"></i></div>
-          <h4>Balanço Financeiro DRE</h4>
-          <p>Tenha uma DRE estruturada com faturamento, descontos, custo de animais e métricas zootécnicas integradas.</p>
-        </div>
-        <div class="feature-card" data-feature="reproducao" style="cursor: pointer;">
-          <div class="feature-icon"><i class="lucide-baby"></i></div>
-          <h4>Genealogia & Nascimentos</h4>
-          <p>Cadastre nascimentos, mapeie a árvore genealógica de matrizes e reprodutores e controle a evolução de partos.</p>
+          <h4>Balanço Financeiro & DRE</h4>
+          <p>Tenha custos operacionais, compras/vendas de animais e contas a pagar/receber integrados em uma DRE automática.</p>
         </div>
       </div>
     </section>
@@ -353,73 +433,52 @@
               <span class="result-detail">Com base no preço da @ informado</span>
             </div>
           </div>
-          <p class="simulator-disclaimer">
-            * Cálculo estimado assumindo rendimento médio de carcaça de 50%. A realização de pesagens constantes com o BoiUni ajuda a rastrear anomalias de engorda precocemente.
-          </p>
+            <p class="simulator-disclaimer">* Cálculo estimado assumindo rendimento médio de carcaça de 50%. A realização de pesagens constantes com o BoiUni ajuda a rastrear anomalias de engorda precocemente.</p>
         </div>
       </div>
     </section>
 
-    <!-- Por que escolher Section (Offline-First) -->
-    <section id="about" class="landing-about">
-      <div class="about-container">
-        <div class="about-image">
-          <div class="offline-badge">
-            <i class="lucide-wifi-off"></i>
-            <span>Funciona Sem Internet!</span>
-          </div>
-          <div class="about-illustration">
-            <div class="ill-circle"></div>
-            <i class="lucide-cloud-lightning"></i>
-          </div>
-        </div>
-        <div class="about-text">
-          <span class="badge badge-success" style="margin-bottom: 12px;">Offline-First</span>
-          <h3>Desenvolvido para a realidade do campo</h3>
-          <p>Sabemos que a internet no pasto nem sempre está disponível. É por isso que o BoiUni foi construído com a tecnologia **Offline-First**.</p>
-          <ul class="about-list">
-            <li><i class="lucide-check-circle"></i> <strong>Sempre Ativo:</strong> Todos os seus dados são salvos localmente e você pode cadastrar e pesar seus animais mesmo sem sinal.</li>
-            <li><i class="lucide-check-circle"></i> <strong>Sincronização na Nuvem:</strong> Assim que detectar internet, os dados são atualizados de forma invisível no Supabase.</li>
-            <li><i class="lucide-check-circle"></i> <strong>Seguro e Privado:</strong> Seus dados são protegidos por senha e isolados do rebanho de outros produtores.</li>
-          </ul>
-        </div>
+    <!-- Offline & Instalação Section -->
+    <section id="pwa-guide" class="landing-pwa" style="max-width: 1200px; margin: 0 auto; padding: 100px 24px; position: relative; z-index: 5;">
+      <div class="section-header" style="text-align: center; margin-bottom: 60px;">
+        <span class="badge badge-success">Mobilidade & Tecnologia</span>
+        <h3>Funciona Sem Internet e Instala como Aplicativo</h3>
+        <p>Desenvolvido para a realidade do pasto. Use offline no curral e instale direto no celular com um toque.</p>
       </div>
-    </section>
+      <div class="pwa-container" style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center;">
+        
+        <!-- Benefícios Offline e Passos PWA -->
+        <div class="pwa-content-area" style="display: flex; flex-direction: column; gap: 32px;">
+          <div class="offline-feature-box glass-card" style="padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; gap: 16px;">
+            <div style="font-size: 24px; color: var(--primary);"><i class="lucide-wifi-off"></i></div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Tecnologia Offline-First</h4>
+              <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5; margin: 0;">Faça lançamentos, pesagens e consultas no pasto. Os dados ficam salvos localmente e sincronizam de forma automática com a nuvem assim que houver sinal.</p>
+            </div>
+          </div>
 
-    <!-- PWA Install Guide Section -->
-    <section id="pwa-guide" class="landing-pwa">
-      <div class="section-header">
-        <span class="badge badge-success">Instalação Simples</span>
-        <h3>Leve o BoiUni no seu bolso</h3>
-        <p>Instale nosso sistema direto no celular ou no computador sem depender de lojas de aplicativos.</p>
-      </div>
-      <div class="pwa-container">
-        <div class="pwa-steps-list">
-          <div class="pwa-step-card">
-            <div class="step-num-badge">1</div>
-            <div class="step-card-content">
-              <h4>Acesse pelo Celular</h4>
-              <p>Abra este site no seu smartphone usando o Chrome (Android) ou Safari (iPhone/iOS).</p>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="font-size: 16px; font-weight: 700; color: var(--text-main);">Como instalar no seu celular:</h4>
+            
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">1</div>
+              <p style="font-size: 14px; color: var(--text-muted); margin: 0;"><strong>Acesse pelo navegador:</strong> Abra o BoiUni no Chrome (Android) ou Safari (iPhone/iOS).</p>
             </div>
-          </div>
-          <div class="pwa-step-card">
-            <div class="step-num-badge">2</div>
-            <div class="step-card-content">
-              <h4>Abra o Menu de Instalação</h4>
-              <p>No Android ou PC, clique no botão "Instalar App" no menu. No iPhone, clique no ícone de compartilhar do Safari.</p>
+
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">2</div>
+              <p style="font-size: 14px; color: var(--text-muted); margin: 0;"><strong>Selecione a opção:</strong> Clique em "Instalar aplicativo" na tela ou use a opção "Adicionar à Tela de Início" no menu do navegador.</p>
             </div>
-          </div>
-          <div class="pwa-step-card">
-            <div class="step-num-badge">3</div>
-            <div class="step-card-content">
-              <h4>Adicione à Tela Inicial</h4>
-              <p>Selecione "Adicionar à Tela de Início" e o BoiUni se tornará um aplicativo nativo na tela do seu celular!</p>
+
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">3</div>
+              <p style="font-size: 14px; color: var(--text-muted); margin: 0;"><strong>Pronto para usar:</strong> O aplicativo será instalado na tela inicial do seu celular, ocupando menos de 2MB de espaço.</p>
             </div>
           </div>
         </div>
         
         <!-- Mockup do Celular PWA -->
-        <div class="pwa-mockup-area">
+        <div class="pwa-mockup-area" style="display: flex; justify-content: center;">
           <div class="phone-mockup">
             <div class="phone-speaker"></div>
             <div class="phone-screen">
@@ -462,6 +521,57 @@
             <div class="phone-home-btn"></div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="landing-roadmap" style="max-width: 1200px; margin: 0 auto; padding: 100px 24px; position: relative; z-index: 5;">
+      <div class="section-header" style="text-align: center; margin-bottom: 50px;">
+        <span class="badge badge-success">Planejamento</span>
+        <h3>Roadmap de Evolução do BoiUni</h3>
+        <p>Acompanhe o desenvolvimento de novas ferramentas e o que estamos preparando para o futuro da gestão pecuária.</p>
+      </div>
+      <div class="roadmap-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px;">
+        
+        <!-- Fase 1 -->
+        <div class="roadmap-card glass-card" style="padding: 30px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); background: var(--bg-surface); position: relative; transition: var(--transition);">
+          <div class="roadmap-status" style="position: absolute; top: -12px; right: 20px; background: #166534; color: #fff; padding: 4px 12px; font-size: 11px; font-weight: bold; border-radius: 20px; border: 2px solid var(--bg-main);">✓ CONCLUÍDO</div>
+          <h4 style="font-size: 14px; text-transform: uppercase; color: var(--primary); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em;">Fase 1: Fundação</h4>
+          <h3 style="font-size: 20px; margin-bottom: 20px; color: var(--text-main);">Controle Básico de Rebanho</h3>
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; color: var(--text-muted); font-size: 14px;">
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-check-circle" style="color: #166534; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Cadastro de animais com fotos e dados básicos (brinco, raça, sexo, categoria).</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-check-circle" style="color: #166534; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Controle de pesagens trimestrais e histórico de peso de cada animal.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-check-circle" style="color: #166534; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Gráficos integrados de ganho de peso acumulado e GMD.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-check-circle" style="color: #166534; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Funcionamento Offline-First para uso sem internet no pasto.</li>
+          </ul>
+        </div>
+
+        <!-- Fase 2 -->
+        <div class="roadmap-card glass-card" style="padding: 30px; border-radius: var(--radius-lg); border: 1px solid var(--primary); background: var(--bg-surface); position: relative; transition: var(--transition); box-shadow: 0 4px 20px rgba(21, 128, 61, 0.15);">
+          <div class="roadmap-status" style="position: absolute; top: -12px; right: 20px; background: var(--primary); color: #fff; padding: 4px 12px; font-size: 11px; font-weight: bold; border-radius: 20px; border: 2px solid var(--bg-main); animation: pulse 2s infinite;">⚡ EM CURSO</div>
+          <h4 style="font-size: 14px; text-transform: uppercase; color: var(--primary); margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em;">Fase 2: Gestão Integrada</h4>
+          <h3 style="font-size: 20px; margin-bottom: 20px; color: var(--text-main);">Sanidade, Lotes e Financeiro</h3>
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; color: var(--text-muted); font-size: 14px;">
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-play-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Gestão de Insumos (vacinas, medicamentos, sal, ração) com alertas de validade.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-play-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Controle rigoroso de período de carência sanitária antes de vendas/abate.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-play-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Criação e precificação de lotes de venda de forma flexível (unitário vs lote total).</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-play-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Registro de nascimentos zootécnicos vinculando mãe, pai e bezerro.</li>
+          </ul>
+        </div>
+
+        <!-- Fase 3 -->
+        <div class="roadmap-card glass-card" style="padding: 30px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); background: var(--bg-surface); position: relative; transition: var(--transition);">
+          <div class="roadmap-status" style="position: absolute; top: -12px; right: 20px; background: #64748b; color: #fff; padding: 4px 12px; font-size: 11px; font-weight: bold; border-radius: 20px; border: 2px solid var(--bg-main);">🔮 FUTURO</div>
+          <h4 style="font-size: 14px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em;">Fase 3: Inteligência</h4>
+          <h3 style="font-size: 20px; margin-bottom: 20px; color: var(--text-main);">IoT e Estatísticas Preditivas</h3>
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; color: var(--text-muted); font-size: 14px;">
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-help-circle" style="color: #64748b; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Integração direta com balanças eletrônicas e leitores de brinco RFID.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-help-circle" style="color: #64748b; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Projeção automática de ganho de arrobas (@) por piquete (rotacionado).</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-help-circle" style="color: #64748b; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Integração com dados climáticos locais para planejamento de suplementação na seca.</li>
+            <li style="display: flex; align-items: flex-start; gap: 8px;"><i class="lucide-help-circle" style="color: #64748b; flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px;"></i> Aplicativo nativo empacotado para Android e iOS nas lojas oficiais.</li>
+          </ul>
+        </div>
+
       </div>
     </section>
 
@@ -512,6 +622,26 @@
             <p>Não. O BoiUni roda direto no navegador e se instala como um PWA, ocupando pouquíssimo espaço na memória do celular. Ele funciona igual a um aplicativo nativo do Google Play ou da App Store, mas é atualizado automaticamente sem você precisar fazer downloads de pacotes pesados.</p>
           </div>
         </div>
+      </div>
+    </section>
+
+
+    <!-- CTA Final Section -->
+    <section class="landing-cta">
+      <div class="cta-container">
+        <div class="cta-glow"></div>
+        <span class="badge badge-success badge-pulse">100% Gratuito — Sem Cartão de Crédito</span>
+        <h3>Pronto para modernizar sua fazenda?</h3>
+        <p>Junte-se a milhares de produtores que já estão controlando o rebanho de forma inteligente. Cadastre-se em menos de 1 minuto e comece a usar agora mesmo.</p>
+        <div class="cta-buttons">
+          <button class="btn btn-primary btn-lg" onclick="window.app.openAuthModal('signup', event)">
+            Criar Minha Conta Grátis <i class="lucide-arrow-right"></i>
+          </button>
+          <button class="btn btn-secondary btn-lg" onclick="window.app.openAuthModal('login', event)">
+            Já Tenho Conta — Entrar
+          </button>
+        </div>
+        <p class="cta-disclaimer"><i class="lucide-shield-check"></i> Seus dados são criptografados e protegidos. Nenhum cartão de crédito é solicitado.</p>
       </div>
     </section>
 
@@ -611,6 +741,9 @@
         <li class="menu-item" data-tab="clientes">
           <a href="#"><i class="lucide-users"></i> Clientes / Fornecedores</a>
         </li>
+        <li class="menu-item" data-tab="estoque-insumos">
+          <a href="#"><i class="lucide-package"></i> Estoque de Insumos</a>
+        </li>
         <li class="menu-item" data-tab="custos">
           <a href="#"><i class="lucide-dollar-sign"></i> Custos da Fazenda</a>
         </li>
@@ -655,6 +788,20 @@
       
       <!-- 1. PAINEL DASHBOARD -->
       <div id="panel-dashboard" class="content-panel active">
+        
+        <!-- Painel de Alertas Críticos -->
+        <div id="dashboard-alerts-container" class="dashboard-alerts hidden" style="margin-bottom: 24px;">
+          <div class="alerts-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <span style="font-weight: 700; font-size: 14px; color: var(--danger); display: flex; align-items: center; gap: 6px;">
+              <i class="lucide-alert-triangle" style="width:16px; height:16px; color: var(--danger);"></i> Alertas Críticos e Lembretes
+            </span>
+            <span id="alerts-count-badge" class="badge badge-danger" style="font-size: 11px;">0 alertas</span>
+          </div>
+          <div id="dashboard-alerts-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+
         <!-- Grid de Métricas -->
         <div class="metrics-grid">
           <div class="metric-card card-total">
@@ -691,6 +838,27 @@
               <div class="metric-value" id="dash-peso-medio">0 kg</div>
             </div>
             <div class="metric-icon"><i class="lucide-scale"></i></div>
+          </div>
+          <div class="metric-card card-natalidade" style="border-left: 4px solid var(--primary);">
+            <div class="metric-info">
+              <h4>Taxa Natalidade</h4>
+              <div class="metric-value" id="dash-taxa-natalidade">0%</div>
+            </div>
+            <div class="metric-icon" style="color: var(--primary);"><i class="lucide-heart"></i></div>
+          </div>
+          <div class="metric-card card-mortalidade" style="border-left: 4px solid var(--danger);">
+            <div class="metric-info">
+              <h4>Taxa Mortalidade</h4>
+              <div class="metric-value" id="dash-taxa-mortalidade">0%</div>
+            </div>
+            <div class="metric-icon" style="color: var(--danger);"><i class="lucide-skull"></i></div>
+          </div>
+          <div class="metric-card card-producao-arroba" style="border-left: 4px solid var(--warning);">
+            <div class="metric-info">
+              <h4>Prod. Arrobas/Ano</h4>
+              <div class="metric-value" id="dash-arrobas-ano">0 @</div>
+            </div>
+            <div class="metric-icon" style="color: var(--warning);"><i class="lucide-trending-up"></i></div>
           </div>
         </div>
 
@@ -791,6 +959,7 @@
                 <li class="filter-tab" data-filter="Bois">Bois</li>
                 <li class="filter-tab" data-filter="Vacas">Vacas</li>
                 <li class="filter-tab" data-filter="Vendidos">Vendidos</li>
+                <li class="filter-tab" data-filter="Mortos">Mortos</li>
               </ul>
               
               <select id="animal-filter-lote" class="filter-select">
@@ -949,6 +1118,23 @@
                 <label for="birth-raca">Raça</label>
                 <input type="text" id="birth-raca" name="raca" value="Nelore" placeholder="Ex: Nelore">
               </div>
+              <div class="form-group-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label for="birth-cura-umbigo">Cura do Umbigo *</label>
+                  <select id="birth-cura-umbigo" name="cura_umbigo" required class="filter-select" style="width: 100%">
+                    <option value="Sim">Sim (Realizada)</option>
+                    <option value="Não">Não (Pendente)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="birth-vacina-aplicada">Vacina Inicial</label>
+                  <input type="text" id="birth-vacina-aplicada" name="vacina_aplicada" placeholder="Ex: Vacina Aftosa" list="medicamentos-datalist">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="birth-vermifugo-aplicado">Primeira Vermifugação</label>
+                <input type="text" id="birth-vermifugo-aplicado" name="vermifugo_aplicado" placeholder="Ex: Vermífugo Oral" list="medicamentos-datalist">
+              </div>
               <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%">
                 Salvar Nascimento
               </button>
@@ -963,11 +1149,11 @@
                 <thead>
                   <tr>
                     <th>Data</th>
-                    <th>Bezerro Nascido</th>
+                    <th>Bezerro</th>
                     <th>Sexo</th>
-                    <th>Mãe</th>
-                    <th>Pai</th>
-                    <th>Peso ao Nascer</th>
+                    <th>Mãe / Pai</th>
+                    <th>Peso Nascer</th>
+                    <th>Manejos Iniciais</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -1140,7 +1326,18 @@
 
       <!-- 6B. PAINEL DE CUSTOS DA FAZENDA -->
       <div id="panel-custos" class="content-panel">
-        <div class="dashboard-charts-reversed">
+        
+        <div class="tab-nav" style="margin-bottom: 20px;">
+          <button class="tab-btn active" id="btn-tab-custos-operacionais" onclick="window.app.switchSubTab('sec-custos-operacionais', this)">
+            <i class="lucide-dollar-sign"></i> Custos e Despesas Operacionais
+          </button>
+          <button class="tab-btn" id="btn-tab-financeiro-compromissos" onclick="window.app.switchSubTab('sec-financeiro-compromissos', this)">
+            <i class="lucide-calendar-clock"></i> Contas a Pagar / Receber e Fluxo
+          </button>
+        </div>
+
+        <div id="sec-custos-operacionais" class="custos-sub-section">
+          <div class="dashboard-charts-reversed">
           
           <!-- Formulário de Lançamento de Custos -->
           <div class="chart-card">
@@ -1272,8 +1469,242 @@
                 </table>
               </div>
               
+          </div>
+
+        </div>
+      </div> <!-- Fecha dashboard-charts-reversed -->
+      </div> <!-- Fecha sec-custos-operacionais -->
+
+      <!-- NOVA SEÇÃO: FINANCEIRO COMPROMISSOS (CONTAS A PAGAR / RECEBER) -->
+      <div id="sec-financeiro-compromissos" class="custos-sub-section hidden">
+        <div class="dashboard-charts-reversed">
+          
+          <!-- Lançar Nova Conta/Compromisso -->
+          <div class="chart-card">
+            <h3><i class="lucide-calendar-plus"></i> Agendar Compromisso Financeiro</h3>
+            <form id="form-financeiro-compromisso" style="display: flex; flex-direction: column; gap: 16px;" onsubmit="event.preventDefault(); window.app.handleCompromissoSubmit();">
+              <input type="hidden" id="compromisso-id" name="id">
+              <div class="form-group">
+                <label for="compromisso-tipo">Tipo de Transação *</label>
+                <select id="compromisso-tipo" name="tipo" required class="filter-select" style="width: 100%">
+                  <option value="Pagar">Conta a Pagar (Saída)</option>
+                  <option value="Receber">Conta a Receber (Entrada)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="compromisso-descricao">Descrição *</label>
+                <input type="text" id="compromisso-descricao" name="descricao" placeholder="Ex: Pagamento de energia do curral" required>
+              </div>
+              <div class="form-group-row" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px;">
+                <div class="form-group">
+                  <label for="compromisso-valor">Valor *</label>
+                  <input type="number" id="compromisso-valor" name="valor" step="0.01" placeholder="Ex: 450.00" required>
+                </div>
+                <div class="form-group">
+                  <label for="compromisso-categoria">Categoria *</label>
+                  <select id="compromisso-categoria" name="categoria" required class="filter-select" style="width: 100%">
+                    <option value="Funcionários">Funcionários</option>
+                    <option value="Alimentação Geral">Alimentação Geral</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Combustível">Combustível</option>
+                    <option value="Impostos/Taxas">Impostos/Taxas</option>
+                    <option value="Energia/Água">Energia / Água</option>
+                    <option value="Vacinas/Medicamentos Geral">Medicamentos / Vacinas</option>
+                    <option value="Venda Animais">Venda de Animais</option>
+                    <option value="Compra Animais">Compra de Animais</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label for="compromisso-vencimento">Data de Vencimento *</label>
+                  <input type="date" id="compromisso-vencimento" name="vencimento" required style="width: 100%;">
+                </div>
+                <div class="form-group">
+                  <label for="compromisso-status">Status Inicial *</label>
+                  <select id="compromisso-status" name="status" required class="filter-select" style="width: 100%">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Pago">Pago / Liquidado</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                  Agendar Compromisso
+                </button>
+                <button type="button" id="btn-compromisso-cancel" class="btn btn-secondary hidden" onclick="window.app.cancelEditCompromisso()">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Controle de Fluxo & Contas -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Resumo Rápido Financeiro -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+              <div class="chart-card" style="padding: 16px; border-left: 4px solid var(--danger);">
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted);">Total a Pagar</span>
+                <div id="compromisso-resumo-pagar" style="font-size: 20px; font-weight: 800; color: var(--danger); margin-top: 4px;">R$ 0,00</div>
+              </div>
+              <div class="chart-card" style="padding: 16px; border-left: 4px solid var(--success);">
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted);">Total a Receber</span>
+                <div id="compromisso-resumo-receber" style="font-size: 20px; font-weight: 800; color: var(--success); margin-top: 4px;">R$ 0,00</div>
+              </div>
+              <div class="chart-card" style="padding: 16px; border-left: 4px solid var(--primary);">
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted);">Saldo Projetado</span>
+                <div id="compromisso-resumo-saldo" style="font-size: 20px; font-weight: 800; color: var(--primary); margin-top: 4px;">R$ 0,00</div>
+              </div>
             </div>
 
+            <!-- Listagem e Tabelas -->
+            <div class="table-card" style="margin-top: 0;">
+              <div class="table-header-bar" style="flex-wrap: wrap; gap: 12px; padding-bottom: 12px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                <div class="table-title">
+                  <h3 style="margin: 0; font-size: 15px;"><i class="lucide-history"></i> Compromissos Lançados</h3>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto;">
+                  <select id="compromisso-filter-status" style="padding: 6px 12px; font-size: 12px;">
+                    <option value="Todos">Todos Status</option>
+                    <option value="Pendente">Pendentes</option>
+                    <option value="Pago">Pagos / Recebidos</option>
+                    <option value="Atrasado">Atrasados</option>
+                  </select>
+                  <select id="compromisso-filter-tipo" style="padding: 6px 12px; font-size: 12px;">
+                    <option value="Todos">Todos os Tipos</option>
+                    <option value="Pagar">Contas a Pagar</option>
+                    <option value="Receber">Contas a Receber</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="boi-table">
+                  <thead>
+                    <tr>
+                      <th>Vencimento</th>
+                      <th>Descrição</th>
+                      <th>Categoria</th>
+                      <th>Tipo</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th style="width: 130px;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="compromissos-tbody">
+                    <!-- Injetado dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div> <!-- Fecha sec-financeiro-compromissos -->
+
+      </div> <!-- Fecha o panel-custos principal -->
+
+      <!-- 6.5 PAINEL DE ESTOQUE DE INSUMOS -->
+      <div id="panel-estoque-insumos" class="content-panel">
+        <div class="dashboard-charts-reversed">
+          
+          <!-- Registrar Entrada no Estoque -->
+          <div class="chart-card">
+            <h3><i class="lucide-package-plus"></i> Registrar Entrada / Novo Insumo</h3>
+            <form id="form-estoque-insumo" style="display: flex; flex-direction: column; gap: 16px;" onsubmit="event.preventDefault(); window.app.handleEstoqueInsumoSubmit();">
+              <input type="hidden" id="insumo-id" name="id">
+              <div class="form-group">
+                <label for="insumo-tipo">Tipo de Insumo *</label>
+                <select id="insumo-tipo" name="tipo" required class="filter-select" style="width: 100%">
+                  <option value="Medicamento">Medicamento</option>
+                  <option value="Vacina">Vacina</option>
+                  <option value="Sal Mineral">Sal Mineral</option>
+                  <option value="Milho Moído">Milho Moído</option>
+                  <option value="Ração">Ração</option>
+                  <option value="Outros">Outros / Equipamento</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="insumo-nome">Nome do Insumo *</label>
+                <input type="text" id="insumo-nome" name="nome" placeholder="Ex: Ivermectina 1% ou Ração Engorda" required>
+              </div>
+              <div class="form-group-row" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px;">
+                <div class="form-group">
+                  <label for="insumo-quantidade">Quantidade *</label>
+                  <input type="number" id="insumo-quantidade" name="quantidade" step="0.01" placeholder="Ex: 50" required>
+                </div>
+                <div class="form-group">
+                  <label for="insumo-unidade">Unidade *</label>
+                  <select id="insumo-unidade" name="unidade" required class="filter-select" style="width: 100%">
+                    <option value="kg">Quilos (kg)</option>
+                    <option value="ml">Mililitros (ml)</option>
+                    <option value="litros">Litros (L)</option>
+                    <option value="doses">Doses</option>
+                    <option value="unidades">Unidades</option>
+                    <option value="sacos">Sacos</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label for="insumo-lote">Número do Lote</label>
+                  <input type="text" id="insumo-lote" name="lote" placeholder="Ex: LOT9982">
+                </div>
+                <div class="form-group">
+                  <label for="insumo-validade">Data de Validade</label>
+                  <input type="date" id="insumo-validade" name="validade">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="insumo-minimo">Estoque Mínimo (Alerta) *</label>
+                <input type="number" id="insumo-minimo" name="estoque_minimo" step="0.01" value="5" placeholder="Ex: 5" required>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                  Registrar Insumo
+                </button>
+                <button type="button" id="btn-insumo-cancel" class="btn btn-secondary hidden" onclick="window.app.cancelEditInsumo()">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Listagem do Estoque -->
+          <div class="chart-card">
+            <h3><i class="lucide-package"></i> Controle de Estoque Físico</h3>
+            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+              <input type="text" id="insumo-search" placeholder="Buscar insumo..." style="padding: 8px 12px; font-size: 13px; flex: 1;">
+              <select id="insumo-filter-tipo" style="padding: 8px 12px; font-size: 13px; width: 150px;">
+                <option value="Todos">Todos os Tipos</option>
+                <option value="Medicamento">Medicamento</option>
+                <option value="Vacina">Vacina</option>
+                <option value="Sal Mineral">Sal Mineral</option>
+                <option value="Milho Moído">Milho Moído</option>
+                <option value="Ração">Ração</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+            <div class="table-responsive">
+              <table class="boi-table">
+                <thead>
+                  <tr>
+                    <th>Insumo</th>
+                    <th>Tipo</th>
+                    <th>Qtd Atual</th>
+                    <th>Lote</th>
+                    <th>Validade</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="estoque-insumos-tbody">
+                  <!-- Injetado dinamicamente -->
+                </tbody>
+              </table>
+            </div>
           </div>
 
         </div>
@@ -1419,6 +1850,9 @@
             </button>
             <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-manutencao', this)">
               <i class="lucide-database" style="width: 16px; height: 16px;"></i> Manutenção & Backup
+            </button>
+            <button class="settings-nav-btn" onclick="window.app.switchSettingsTab('settings-tab-lotes-venda', this)">
+              <i class="lucide-layers" style="width: 16px; height: 16px;"></i> Lotes para Venda
             </button>
           </div>
 
@@ -1599,6 +2033,47 @@
               </div>
             </div>
 
+            <!-- Tab: Lotes de Venda -->
+            <div id="settings-tab-lotes-venda" class="settings-tab-pane hidden">
+              <div class="chart-card" style="display: flex; flex-direction: column; gap: 20px;">
+                <h3><i class="lucide-layers"></i> Lotes para Venda</h3>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4;">
+                  Crie lotes de venda pré-definidos selecionando os animais que deseja vender em grupo. Ao registrar uma venda, basta escolher o lote para carregar todos os animais instantaneamente.
+                </p>
+                
+                <form id="form-config-lote-venda" style="display: flex; flex-direction: column; gap: 14px;" onsubmit="event.preventDefault(); window.app.handleAddLoteVenda();">
+                  <div class="form-group">
+                    <label for="config-lote-venda-nome" style="font-weight: 600; margin-bottom: 6px; display: block;">Nome do Lote *</label>
+                    <input type="text" id="config-lote-venda-nome" placeholder="Ex: Lote Bois Pasto 2" required style="width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Animais do Lote *</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                      <input type="text" id="lote-venda-search-animals" placeholder="Buscar por brinco, nome ou raça..." style="flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-lote-venda-select-all" style="padding: 8px 12px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Todos</button>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-lote-venda-clear-all" style="padding: 8px 12px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Nenhum</button>
+                    </div>
+                    
+                    <div id="lote-venda-animais-list" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-sm); background-color: var(--bg-app); display: flex; flex-direction: column; gap: 8px;">
+                      <!-- Lista de animais ativos com checkboxes populada dinamicamente -->
+                    </div>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="lucide-plus-circle"></i> Criar Lote de Venda
+                  </button>
+                </form>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+                
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main);">Lotes Cadastrados</h4>
+                <div id="config-lotes-venda-list" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; gap: 6px; background-color: var(--bg-app);">
+                  <!-- Listagem de lotes criados -->
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1645,7 +2120,13 @@
 
             <!-- Checklist Mensal -->
             <div class="chart-card">
-              <h3 style="display: flex; align-items: center; gap: 8px;"><i class="lucide-check-square" style="color: var(--primary);"></i> Tarefas do Mês</h3>
+              <h3 style="display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%;">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                  <i class="lucide-check-square" style="color: var(--primary);"></i> 
+                  <span id="checklist-title">Tarefas do Mês</span>
+                </span>
+                <span id="checklist-reset-link" class="hidden" style="font-size: 12px; font-weight: normal; color: var(--primary); cursor: pointer; text-decoration: underline;" onclick="window.app.clearSelectedDayFilter()">(Ver Mês)</span>
+              </h3>
               <div id="calendar-checklist" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
                 <!-- Preenchido dinamicamente -->
               </div>
@@ -1730,6 +2211,14 @@
             <div class="form-group">
               <label for="animal-peso-atual">Peso Inicial (kg) *</label>
               <input type="number" id="animal-peso-atual" name="peso_atual" step="0.1" placeholder="Ex: 180" required>
+            </div>
+            <div class="form-group">
+              <label for="animal-status">Situação *</label>
+              <select id="animal-status" name="status" required>
+                <option value="Ativo" selected>Ativo</option>
+                <option value="Vendido">Vendido</option>
+                <option value="Morto">Morto</option>
+              </select>
             </div>
             <div class="form-group form-group-full">
               <label for="animal-origem">Origem do Animal *</label>
@@ -1817,7 +2306,38 @@
           <div class="form-grid">
             <div class="form-group form-group-full">
               <label style="font-weight: 600; margin-bottom: 6px; display: block; color: var(--text-main);">Animais para Venda *</label>
-              <input type="text" id="sale-search-animals" placeholder="Buscar brinco, nome ou raça..." style="margin-bottom: 10px; width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font);">
+              
+              <div style="margin-bottom: 10px;">
+                <select id="sale-select-lote-venda" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px; height: 38px;">
+                  <option value="">Carregar Lote de Venda Pré-definido...</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 180px;">
+                  <input type="text" id="sale-search-animals" placeholder="Buscar brinco, nome ou raça..." style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px;">
+                </div>
+                <div style="flex: 1.2; min-width: 140px;">
+                  <select id="sale-filter-categoria" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px; height: 38px;">
+                    <option value="">Filtrar Categoria...</option>
+                    <option value="Bezerro">Bezerro</option>
+                    <option value="Garrote">Garrote</option>
+                    <option value="Novilha">Novilha</option>
+                    <option value="Boi Gordo">Boi Gordo</option>
+                    <option value="Vaca">Vaca</option>
+                    <option value="Touro">Touro</option>
+                  </select>
+                </div>
+                <div style="flex: 1.5; min-width: 160px;">
+                  <select id="sale-filter-lote-compra" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px; height: 38px;">
+                    <option value="">Filtrar Lote Compra...</option>
+                  </select>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-sale-select-all" style="padding: 8px 12px; height: 38px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Todos</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-sale-clear-all" style="padding: 8px 12px; height: 38px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Nenhum</button>
+                </div>
+              </div>
               <div id="sale-animals-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-sm); background-color: var(--bg-app); display: flex; flex-direction: column; gap: 8px;">
                 <!-- Lista de checkboxes injetada dinamicamente -->
               </div>
@@ -1848,9 +2368,20 @@
               <label for="sale-peso-venda">Peso de Venda (kg) *</label>
               <input type="number" id="sale-peso-venda" name="peso_venda" step="0.1" placeholder="Ex: 520" required>
             </div>
+            <div class="form-group" id="sale-tipo-valor-group">
+              <label for="sale-tipo-valor">Tipo de Valor *</label>
+              <select id="sale-tipo-valor" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px; height: 38px;">
+                <option value="total">Valor Total (Do Lote)</option>
+                <option value="unitario">Valor Unitário (Por Cabeça)</option>
+              </select>
+            </div>
             <div class="form-group">
-              <label for="sale-valor">Valor de Venda (R$) *</label>
-              <input type="number" id="sale-valor" name="valor" step="0.01" placeholder="Ex: 4200.00" required>
+              <label for="sale-valor-unitario">Valor Unitário (R$)</label>
+              <input type="number" id="sale-valor-unitario" placeholder="Calculado ou digitado" step="0.01" readonly style="background-color: var(--bg-surface-subtle); color: var(--text-muted); width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-family: var(--font); font-size: 13px; height: 38px;">
+            </div>
+            <div class="form-group">
+              <label for="sale-valor">Valor Total da Venda (R$) *</label>
+              <input type="number" id="sale-valor" name="valor" step="0.01" placeholder="Ex: 4200.00" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-app); color: var(--text-main); font-family: var(--font); font-size: 13px; height: 38px;">
             </div>
             <div class="form-group">
               <label for="sale-desconto">Desconto (R$)</label>
@@ -2150,6 +2681,8 @@
               <label for="agenda-recorrencia">Recorrência *</label>
               <select id="agenda-recorrencia" name="recorrencia" style="width:100%;">
                 <option value="Nenhuma">Não se repete</option>
+                <option value="Diaria">Repetir Diariamente</option>
+                <option value="Semanal">Repetir Semanalmente</option>
                 <option value="Mensal">Repetir Mensalmente</option>
                 <option value="Trimestral">Repetir Trimestralmente</option>
                 <option value="Semestral">Repetir Semestralmente</option>

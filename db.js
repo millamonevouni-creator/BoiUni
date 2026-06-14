@@ -13,7 +13,10 @@ const DB_KEYS = {
   RACAS: 'boiuni_racas',
   MEDICAMENTOS: 'boiuni_medicamentos',
   ANIMAL_FOTOS: 'boiuni_animal_fotos',
-  AGENDA_MANEJO: 'boiuni_agenda_manejo'
+  AGENDA_MANEJO: 'boiuni_agenda_manejo',
+  LOTES_VENDA: 'boiuni_lotes_venda',
+  ESTOQUE_INSUMOS: 'boiuni_estoque_insumos',
+  FINANCEIRO_COMPROMISSOS: 'boiuni_financeiro_compromissos'
 };
 
 // Configuração Supabase
@@ -92,9 +95,9 @@ const MOCK_VENDAS = [
 ];
 
 const MOCK_NASCIMENTOS = [
-  { id: 1, animal_id: 3, mae_id: 1, pai_id: 4, data: '2024-05-20', peso_ao_nascer: 32 },
-  { id: 2, animal_id: 5, mae_id: 1, pai_id: 4, data: '2026-01-05', peso_ao_nascer: 35 },
-  { id: 3, animal_id: 6, mae_id: 3, pai_id: 4, data: '2026-02-12', peso_ao_nascer: 30 }
+  { id: 1, animal_id: 3, mae_id: 1, pai_id: 4, data: '2024-05-20', peso_ao_nascer: 32, cura_umbigo: 'Sim', vacina_aplicada: 'Vacina Aftosa', vermifugo_aplicado: '' },
+  { id: 2, animal_id: 5, mae_id: 1, pai_id: 4, data: '2026-01-05', peso_ao_nascer: 35, cura_umbigo: 'Sim', vacina_aplicada: '', vermifugo_aplicado: 'Vermífugo Oral' },
+  { id: 3, animal_id: 6, mae_id: 3, pai_id: 4, data: '2026-02-12', peso_ao_nascer: 30, cura_umbigo: 'Sim', vacina_aplicada: '', vermifugo_aplicado: '' }
 ];
 
 class LocalDB {
@@ -136,6 +139,15 @@ class LocalDB {
     }
     if (!localStorage.getItem(DB_KEYS.MEDICAMENTOS)) {
       localStorage.setItem(DB_KEYS.MEDICAMENTOS, JSON.stringify(DEFAULT_MEDICAMENTOS));
+    }
+    if (!localStorage.getItem(DB_KEYS.LOTES_VENDA)) {
+      localStorage.setItem(DB_KEYS.LOTES_VENDA, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(DB_KEYS.ESTOQUE_INSUMOS)) {
+      localStorage.setItem(DB_KEYS.ESTOQUE_INSUMOS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(DB_KEYS.FINANCEIRO_COMPROMISSOS)) {
+      localStorage.setItem(DB_KEYS.FINANCEIRO_COMPROMISSOS, JSON.stringify([]));
     }
 
     // Sincroniza em segundo plano se o usuário já estiver logado
@@ -206,6 +218,9 @@ class LocalDB {
     // Exclui primeiro as tabelas filhas
     await supabaseClient.from('animal_fotos').delete().eq('user_id', uId);
     await supabaseClient.from('agenda_manejo').delete().eq('user_id', uId);
+    await supabaseClient.from('lotes_venda').delete().eq('user_id', uId);
+    try { await supabaseClient.from('estoque_insumos').delete().eq('user_id', uId); } catch(e){}
+    try { await supabaseClient.from('financeiro_compromissos').delete().eq('user_id', uId); } catch(e){}
     await supabaseClient.from('custos_fazenda').delete().eq('user_id', uId);
     await supabaseClient.from('despesas').delete().eq('user_id', uId);
     await supabaseClient.from('nascimentos').delete().eq('user_id', uId);
@@ -247,7 +262,7 @@ class LocalDB {
     console.log("Sincronizando rebanho do Supabase...");
     try {
       // Busca tabelas do usuário autenticado (RLS garante o isolamento)
-      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas, rMedicamentos, rAnimalFotos, rAgendaManejo] = await Promise.all([
+      const [rClientes, rAnimais, rPesagens, rCompras, rVendas, rNascimentos, rConfig, rDespesas, rCustosFazenda, rRacas, rMedicamentos, rAnimalFotos, rAgendaManejo, rLotesVenda] = await Promise.all([
         supabaseClient.from('clientes').select('*'),
         supabaseClient.from('animais').select('*').order('id', { ascending: true }),
         supabaseClient.from('pesagens').select('*'),
@@ -260,7 +275,8 @@ class LocalDB {
         supabaseClient.from('racas').select('*'),
         supabaseClient.from('medicamentos').select('*'),
         supabaseClient.from('animal_fotos').select('*'),
-        supabaseClient.from('agenda_manejo').select('*')
+        supabaseClient.from('agenda_manejo').select('*'),
+        supabaseClient.from('lotes_venda').select('*')
       ]);
 
       if (rClientes.error) throw rClientes.error;
@@ -276,6 +292,7 @@ class LocalDB {
       if (rMedicamentos.error) throw rMedicamentos.error;
       if (rAnimalFotos.error) throw rAnimalFotos.error;
       if (rAgendaManejo.error) throw rAgendaManejo.error;
+      if (rLotesVenda.error) throw rLotesVenda.error;
 
       // Salva no localStorage local
       this._set(DB_KEYS.CLIENTES, rClientes.data);
@@ -291,6 +308,26 @@ class LocalDB {
       this._set(DB_KEYS.MEDICAMENTOS, rMedicamentos.data);
       this._set(DB_KEYS.ANIMAL_FOTOS, rAnimalFotos.data);
       this._set(DB_KEYS.AGENDA_MANEJO, rAgendaManejo.data);
+      this._set(DB_KEYS.LOTES_VENDA, rLotesVenda.data || []);
+
+      // Busca extras de estoque e financeiro compromissos de forma resiliente
+      try {
+        const { data: rEstoque, error: errEstoque } = await supabaseClient.from('estoque_insumos').select('*');
+        if (!errEstoque && rEstoque) {
+          this._set(DB_KEYS.ESTOQUE_INSUMOS, rEstoque);
+        }
+      } catch (e) {
+        console.warn("Tabela estoque_insumos não disponível no Supabase:", e);
+      }
+
+      try {
+        const { data: rFin, error: errFin } = await supabaseClient.from('financeiro_compromissos').select('*');
+        if (!errFin && rFin) {
+          this._set(DB_KEYS.FINANCEIRO_COMPROMISSOS, rFin);
+        }
+      } catch (e) {
+        console.warn("Tabela financeiro_compromissos não disponível no Supabase:", e);
+      }
 
       // Se todas as tabelas vieram vazias, apenas registra no console
       if (rAnimais.data.length === 0 && rClientes.data.length === 0) {
@@ -677,7 +714,10 @@ class LocalDB {
       id: this._nextId(DB_KEYS.NASCIMENTOS),
       animal_id: parseInt(birth.animal_id),
       mae_id: parseInt(birth.mae_id),
-      pai_id: birth.pai_id && !isNaN(parseInt(birth.pai_id)) ? parseInt(birth.pai_id) : null
+      pai_id: birth.pai_id && !isNaN(parseInt(birth.pai_id)) ? parseInt(birth.pai_id) : null,
+      cura_umbigo: birth.cura_umbigo || 'Não',
+      vacina_aplicada: birth.vacina_aplicada || '',
+      vermifugo_aplicado: birth.vermifugo_aplicado || ''
     };
     data.push(newBirth);
     this._set(DB_KEYS.NASCIMENTOS, data);
@@ -689,7 +729,10 @@ class LocalDB {
         mae_id: newBirth.mae_id,
         pai_id: newBirth.pai_id,
         data: newBirth.data,
-        peso_ao_nascer: birth.peso_ao_nascer ? parseFloat(birth.peso_ao_nascer) : null
+        peso_ao_nascer: birth.peso_ao_nascer ? parseFloat(birth.peso_ao_nascer) : null,
+        cura_umbigo: newBirth.cura_umbigo,
+        vacina_aplicada: newBirth.vacina_aplicada,
+        vermifugo_aplicado: newBirth.vermifugo_aplicado
       }).then(({ error }) => {
         if (error) console.error("Erro ao salvar nascimento no Supabase:", error);
       });
@@ -970,6 +1013,233 @@ class LocalDB {
     }
   }
 
+  // --- LOTES DE VENDA ---
+  getLotesVenda() {
+    return this._get(DB_KEYS.LOTES_VENDA) || [];
+  }
+
+  getLoteVenda(id) {
+    const data = this.getLotesVenda();
+    return data.find(l => l.id === parseInt(id));
+  }
+
+  addLoteVenda(lote) {
+    const data = this.getLotesVenda();
+    const cleanNome = (lote.nome || '').trim();
+    if (!cleanNome) return null;
+
+    if (data.some(l => l.nome.trim().toLowerCase() === cleanNome.toLowerCase())) {
+      return null;
+    }
+
+    const newLote = {
+      id: this._nextId(DB_KEYS.LOTES_VENDA),
+      nome: cleanNome,
+      animais_ids: Array.isArray(lote.animais_ids) ? lote.animais_ids.map(Number) : [],
+      status: lote.status || 'Ativo',
+      created_at: new Date().toISOString()
+    };
+
+    data.push(newLote);
+    this._set(DB_KEYS.LOTES_VENDA, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('lotes_venda').insert({
+        id: newLote.id,
+        nome: newLote.nome,
+        animais_ids: newLote.animais_ids,
+        status: newLote.status,
+        created_at: newLote.created_at
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao salvar lote de venda no Supabase:", error);
+      });
+    }
+
+    return newLote;
+  }
+
+  deleteLoteVenda(id) {
+    let data = this.getLotesVenda();
+    data = data.filter(l => l.id !== parseInt(id));
+    this._set(DB_KEYS.LOTES_VENDA, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('lotes_venda').delete().eq('id', parseInt(id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao deletar lote de venda no Supabase:", error);
+        });
+    }
+  }
+
+  updateLoteVenda(id, updates) {
+    const data = this.getLotesVenda();
+    const index = data.findIndex(l => l.id === parseInt(id));
+    if (index === -1) return null;
+
+    data[index] = {
+      ...data[index],
+      ...updates,
+      id: parseInt(id)
+    };
+
+    this._set(DB_KEYS.LOTES_VENDA, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('lotes_venda').update({
+        nome: data[index].nome,
+        animais_ids: data[index].animais_ids,
+        status: data[index].status
+      }).eq('id', parseInt(id)).then(({ error }) => {
+        if (error) console.error("Erro ao atualizar lote de venda no Supabase:", error);
+      });
+    }
+
+    return data[index];
+  }
+
+  // --- ESTOQUE DE INSUMOS ---
+  getEstoqueInsumos() {
+    return this._get(DB_KEYS.ESTOQUE_INSUMOS) || [];
+  }
+
+  addEstoqueInsumo(insumo) {
+    const data = this.getEstoqueInsumos();
+    const newInsumo = {
+      ...insumo,
+      id: this._nextId(DB_KEYS.ESTOQUE_INSUMOS),
+      quantidade: parseFloat(insumo.quantidade) || 0,
+      estoque_minimo: parseFloat(insumo.estoque_minimo) || 0
+    };
+    data.push(newInsumo);
+    this._set(DB_KEYS.ESTOQUE_INSUMOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('estoque_insumos').insert({
+        id: newInsumo.id,
+        tipo: newInsumo.tipo,
+        nome: newInsumo.nome,
+        quantidade: newInsumo.quantidade,
+        unidade: newInsumo.unidade || 'kg',
+        lote: newInsumo.lote || '',
+        validade: newInsumo.validade || '',
+        estoque_minimo: newInsumo.estoque_minimo
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao inserir insumo no Supabase:", error);
+      });
+    }
+
+    return newInsumo;
+  }
+
+  updateEstoqueInsumo(id, updates) {
+    const data = this.getEstoqueInsumos();
+    const idx = data.findIndex(i => i.id === parseInt(id));
+    if (idx === -1) return null;
+
+    data[idx] = {
+      ...data[idx],
+      ...updates,
+      id: parseInt(id)
+    };
+    this._set(DB_KEYS.ESTOQUE_INSUMOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('estoque_insumos').update({
+        tipo: data[idx].tipo,
+        nome: data[idx].nome,
+        quantidade: parseFloat(data[idx].quantidade) || 0,
+        unidade: data[idx].unidade || 'kg',
+        lote: data[idx].lote || '',
+        validade: data[idx].validade || '',
+        estoque_minimo: parseFloat(data[idx].estoque_minimo) || 0
+      }).eq('id', parseInt(id)).then(({ error }) => {
+        if (error) console.error("Erro ao atualizar insumo no Supabase:", error);
+      });
+    }
+
+    return data[idx];
+  }
+
+  deleteEstoqueInsumo(id) {
+    let data = this.getEstoqueInsumos();
+    data = data.filter(i => i.id !== parseInt(id));
+    this._set(DB_KEYS.ESTOQUE_INSUMOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('estoque_insumos').delete().eq('id', parseInt(id)).then(({ error }) => {
+        if (error) console.error("Erro ao deletar insumo no Supabase:", error);
+      });
+    }
+  }
+
+  // --- FINANCEIRO COMPROMISSOS (CONTAS A PAGAR / RECEBER) ---
+  getCompromissos() {
+    return this._get(DB_KEYS.FINANCEIRO_COMPROMISSOS) || [];
+  }
+
+  addCompromisso(compromisso) {
+    const data = this.getCompromissos();
+    const newCompromisso = {
+      ...compromisso,
+      id: this._nextId(DB_KEYS.FINANCEIRO_COMPROMISSOS),
+      valor: parseFloat(compromisso.valor) || 0,
+      status: compromisso.status || 'Pendente'
+    };
+    data.push(newCompromisso);
+    this._set(DB_KEYS.FINANCEIRO_COMPROMISSOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('financeiro_compromissos').insert({
+        id: newCompromisso.id,
+        tipo: newCompromisso.tipo,
+        descricao: newCompromisso.descricao,
+        valor: newCompromisso.valor,
+        categoria: newCompromisso.categoria || 'Outros',
+        vencimento: newCompromisso.vencimento,
+        pagamento: newCompromisso.pagamento || null,
+        status: newCompromisso.status
+      }).then(({ error }) => {
+        if (error) console.error("Erro ao inserir compromisso no Supabase:", error);
+      });
+    }
+
+    return newCompromisso;
+  }
+
+  updateCompromissoStatus(id, status, dataPagamento = null) {
+    const data = this.getCompromissos();
+    const idx = data.findIndex(c => c.id === parseInt(id));
+    if (idx === -1) return null;
+
+    data[idx].status = status;
+    data[idx].pagamento = dataPagamento;
+
+    this._set(DB_KEYS.FINANCEIRO_COMPROMISSOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('financeiro_compromissos').update({
+        status: status,
+        pagamento: dataPagamento
+      }).eq('id', parseInt(id)).then(({ error }) => {
+        if (error) console.error("Erro ao atualizar status do compromisso no Supabase:", error);
+      });
+    }
+
+    return data[idx];
+  }
+
+  deleteCompromisso(id) {
+    let data = this.getCompromissos();
+    data = data.filter(c => c.id !== parseInt(id));
+    this._set(DB_KEYS.FINANCEIRO_COMPROMISSOS, data);
+
+    if (supabaseClient) {
+      supabaseClient.from('financeiro_compromissos').delete().eq('id', parseInt(id)).then(({ error }) => {
+        if (error) console.error("Erro ao deletar compromisso no Supabase:", error);
+      });
+    }
+  }
+
   // --- EVOLUÇÃO VISUAL (FOTOS) ---
   getAnimalPhotos(animalId) {
     const data = this._get(DB_KEYS.ANIMAL_FOTOS) || [];
@@ -1188,6 +1458,7 @@ class LocalDB {
       await Promise.all([
         supabaseClient.from('animal_fotos').delete().eq('user_id', uId),
         supabaseClient.from('agenda_manejo').delete().eq('user_id', uId),
+        supabaseClient.from('lotes_venda').delete().eq('user_id', uId),
         supabaseClient.from('despesas').delete().eq('user_id', uId),
         supabaseClient.from('nascimentos').delete().eq('user_id', uId),
         supabaseClient.from('vendas').delete().eq('user_id', uId),
@@ -1251,6 +1522,9 @@ class LocalDB {
       }
       if (data.agenda_manejo && data.agenda_manejo.length > 0) {
         await supabaseClient.from('agenda_manejo').insert(data.agenda_manejo.map(am => ({ ...am, user_id: uId })));
+      }
+      if (data.lotes_venda && data.lotes_venda.length > 0) {
+        await supabaseClient.from('lotes_venda').insert(data.lotes_venda.map(l => ({ ...l, user_id: uId })));
       }
 
       console.log("Semente de dados gravada com sucesso no Supabase.");

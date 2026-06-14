@@ -124,13 +124,45 @@ class UserInterface {
     document.getElementById('dash-vendidos-mes').textContent = monthlySales;
     document.getElementById('dash-lucro-estimado').textContent = this.formatCurrency(totalLucro);
 
-    // 2. Gráfico de Distribuição por Categoria
-    this.renderCategoryChart(activeAnimals);
+    // Indicadores extras
+    const totalMatrizes = activeAnimals.filter(a => a.categoria === 'Vaca' || a.categoria === 'Novilha').length;
+    const nascimentos = window.db.getBirths() || [];
+    const taxaNatalidade = totalMatrizes > 0 ? (nascimentos.length / totalMatrizes) * 100 : 0;
 
-    // 3. Gráfico Financeiro (Últimos 6 meses)
+    const totalMortos = animals.filter(a => a.status === 'Morto').length;
+    const totalAcumulado = animals.length;
+    const taxaMortalidade = totalAcumulado > 0 ? (totalMortos / totalAcumulado) * 100 : 0;
+
+    let totalGMD = 0;
+    let gmdCount = 0;
+    activeAnimals.forEach(a => {
+      const animalWeights = weights.filter(w => w.animal_id === a.id).sort((w1, w2) => new Date(w1.data) - new Date(w2.data));
+      if (animalWeights.length >= 2) {
+        const first = animalWeights[0];
+        const last = animalWeights[animalWeights.length - 1];
+        const diffWeight = last.peso - first.peso;
+        const diffTime = Math.abs(new Date(last.data) - new Date(first.data));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+        const gmd = diffWeight / diffDays;
+        if (gmd > 0 && gmd < 5) {
+          totalGMD += gmd;
+          gmdCount++;
+        }
+      }
+    });
+    const avgGMD = gmdCount > 0 ? (totalGMD / gmdCount) : 0.8;
+    const arrobasAno = (totalAnimals * avgGMD * 365) / 30;
+
+    const natalidadeEl = document.getElementById('dash-taxa-natalidade');
+    if (natalidadeEl) natalidadeEl.textContent = `${taxaNatalidade.toFixed(1)}%`;
+    const mortalidadeEl = document.getElementById('dash-taxa-mortalidade');
+    if (mortalidadeEl) mortalidadeEl.textContent = `${taxaMortalidade.toFixed(1)}%`;
+    const arrobasEl = document.getElementById('dash-arrobas-ano');
+    if (arrobasEl) arrobasEl.textContent = `${arrobasAno.toFixed(0)} @`;
+
+    // 2. Gráficos e Tabelas
+    this.renderCategoryChart(activeAnimals);
     this.renderFinancialChart(purchases, sales);
-    
-    // 4. Preenche tabelas rápidas de atividade recente no Dashboard
     this.renderRecentActivity(activeAnimals, sales);
   }
 
@@ -314,21 +346,25 @@ class UserInterface {
     let list = window.db.getAnimals();
 
     // Filtros de Categoria
-    if (filterCategory !== 'Todos') {
-      if (filterCategory === 'Bezerros') {
-        list = list.filter(a => a.categoria === 'Bezerro' || a.categoria === 'Bezerra');
-      } else if (filterCategory === 'Novilhas') {
-        list = list.filter(a => a.categoria === 'Novilha');
-      } else if (filterCategory === 'Bois') {
-        list = list.filter(a => a.categoria === 'Boi' || a.categoria === 'Reprodutor');
-      } else if (filterCategory === 'Vacas') {
-        list = list.filter(a => a.categoria === 'Vaca' || a.categoria === 'Matriz');
-      } else if (filterCategory === 'Vendidos') {
-        list = list.filter(a => a.status === 'Vendido');
-      }
+    if (filterCategory === 'Vendidos') {
+      list = list.filter(a => a.status === 'Vendido');
+    } else if (filterCategory === 'Mortos') {
+      list = list.filter(a => a.status === 'Morto');
     } else {
-      // Por padrão na aba 'Todos', esconde os vendidos para focar no rebanho ativo
-      list = list.filter(a => a.status === 'Ativo');
+      // Para 'Todos' e filtros de categoria (Bezerros, Novilhas, etc.), foca no rebanho ativo
+      list = list.filter(a => a.status === 'Ativo' || !a.status);
+      
+      if (filterCategory !== 'Todos') {
+        if (filterCategory === 'Bezerros') {
+          list = list.filter(a => a.categoria === 'Bezerro' || a.categoria === 'Bezerra');
+        } else if (filterCategory === 'Novilhas') {
+          list = list.filter(a => a.categoria === 'Novilha');
+        } else if (filterCategory === 'Bois') {
+          list = list.filter(a => a.categoria === 'Boi' || a.categoria === 'Reprodutor');
+        } else if (filterCategory === 'Vacas') {
+          list = list.filter(a => a.categoria === 'Vaca' || a.categoria === 'Matriz');
+        }
+      }
     }
 
     // Busca Textual
@@ -385,24 +421,24 @@ class UserInterface {
           <td>${a.peso_atual > 0 ? `${a.peso_atual} kg` : '-'}</td>
           <td>${this.formatDate(a.nascimento)}</td>
           <td>
-            <span class="badge ${isSold ? 'badge-danger' : 'badge-success'}">${isSold ? 'Vendido' : 'Ativo'}</span>
+            <span class="badge ${a.status === 'Vendido' ? 'badge-danger' : (a.status === 'Morto' ? 'badge-neutral' : 'badge-success')}">${a.status || 'Ativo'}</span>
           </td>
           <td>
             <div class="table-actions">
               <button class="action-btn" title="Ver Detalhes/Perfil" onclick="window.app.viewAnimalProfile(${a.id})">
                 <i class="lucide-eye"></i>
               </button>
-              ${!isSold ? `
+              ${(a.status === 'Ativo' || !a.status) ? `
                 <button class="action-btn" title="Adicionar Pesagem" onclick="window.app.openWeightModal(${a.id})">
                   <i class="lucide-scale"></i>
                 </button>
                 <button class="action-btn" title="Registrar Venda" onclick="window.app.openSaleModal(${a.id})">
                   <i class="lucide-trending-up"></i>
                 </button>
-                <button class="action-btn" title="Editar Cadastro" onclick="window.app.editAnimal(${a.id})">
-                  <i class="lucide-edit"></i>
-                </button>
               ` : ''}
+              <button class="action-btn" title="Editar Cadastro" onclick="window.app.editAnimal(${a.id})">
+                <i class="lucide-edit"></i>
+              </button>
               <button class="action-btn btn-delete" title="Excluir Animal" onclick="window.app.deleteAnimal(${a.id})">
                 <i class="lucide-trash-2"></i>
               </button>
@@ -968,7 +1004,7 @@ class UserInterface {
     document.getElementById('profile-badges-container').innerHTML = `
       <span class="badge ${animal.sexo === 'M' ? 'badge-info' : 'badge-female'}">${animal.sexo === 'M' ? 'Macho' : 'Fêmea'}</span>
       <span class="badge badge-neutral">${this.escapeHTML(animal.categoria)}</span>
-      <span class="badge ${isSold ? 'badge-danger' : 'badge-success'}">${isSold ? 'Vendido' : 'Ativo'}</span>
+      <span class="badge ${animal.status === 'Vendido' ? 'badge-danger' : (animal.status === 'Morto' ? 'badge-neutral' : 'badge-success')}">${animal.status || 'Ativo'}</span>
     `;
 
     // Estatísticas Básicas
@@ -1557,6 +1593,55 @@ class UserInterface {
     }
   }
 
+  renderLotesVendaConfig() {
+    const listContainer = document.getElementById('config-lotes-venda-list');
+    const animalsContainer = document.getElementById('lote-venda-animais-list');
+    
+    if (listContainer) {
+      const lotes = window.db.getLotesVenda();
+      if (lotes.length === 0) {
+        listContainer.innerHTML = `<p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 10px 0;">Nenhum lote de venda cadastrado.</p>`;
+      } else {
+        listContainer.innerHTML = lotes.map(l => {
+          const dateStr = l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '';
+          const count = Array.isArray(l.animais_ids) ? l.animais_ids.length : 0;
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background-color: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${this.escapeHTML(l.nome)}</span>
+                <span style="font-size: 11px; color: var(--text-muted);">${count} ${count === 1 ? 'animal' : 'animais'} • Criado em ${dateStr}</span>
+              </div>
+              <button class="action-btn btn-delete btn-sm" onclick="window.app.handleDeleteLoteVenda(${l.id})" title="Excluir Lote" style="padding: 2px;">
+                <i class="lucide-trash-2" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    if (animalsContainer) {
+      const activeAnimals = window.db.getAnimals().filter(a => a.status === 'Ativo');
+      if (activeAnimals.length === 0) {
+        animalsContainer.innerHTML = `<p style="font-size: 13px; color: var(--text-muted); text-align: center; margin: 10px 0;">Nenhum animal ativo disponível.</p>`;
+      } else {
+        activeAnimals.sort((a, b) => String(a.brinco || '').localeCompare(String(b.brinco || '')));
+        animalsContainer.innerHTML = activeAnimals.map(a => `
+          <label class="lote-venda-animal-item" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background-color 0.2s;">
+            <input type="checkbox" value="${a.id}" class="lote-venda-animal-checkbox" style="width: 16px; height: 16px; cursor: pointer;">
+            <span style="font-size: 13px; color: var(--text-main);">
+              Brinco <strong>${a.brinco}</strong> - ${this.escapeHTML(a.nome || 'Sem Nome')} (${this.escapeHTML(a.raca)}, ${this.escapeHTML(a.categoria)}, ${a.peso_atual || 0} kg)
+            </span>
+          </label>
+        `).join('');
+      }
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
   renderCalendarView(year, month) {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
@@ -1605,15 +1690,17 @@ class UserInterface {
     
     const cellDate = new Date(y, m, d);
     const isToday = cellDate.toDateString() === today.toDateString();
+    const isSelected = window.app.selectedCalendarDate === dateStr;
     
     let classes = 'calendar-day';
     if (isOtherMonth) classes += ' other-month';
     if (isToday) classes += ' today';
+    if (isSelected) classes += ' selected';
     
     let eventsHtml = '';
     if (dayEvents.length > 0) {
       eventsHtml = `<div class="day-events">` + dayEvents.map(e => `
-        <span class="event-badge event-badge-${e.tipo.toLowerCase()} ${e.status === 'Concluído' ? 'completed' : ''}" 
+        <span class="event-badge event-badge-${(e.tipo || 'Outros').toLowerCase()} ${e.status === 'Concluído' ? 'completed' : ''}" 
               onclick="event.stopPropagation(); window.app.showAgendaDetail(${e.id})" 
               title="${e.titulo}">
           ${e.titulo}
@@ -1622,7 +1709,7 @@ class UserInterface {
     }
     
     return `
-      <div class="${classes}" onclick="window.app.openAgendaModal('${dateStr}')">
+      <div class="${classes}" onclick="window.app.selectCalendarDay('${dateStr}')" ondblclick="window.app.openAgendaModal('${dateStr}')" style="cursor: pointer;">
         <span class="day-number">${d}</span>
         ${eventsHtml}
       </div>
@@ -1635,13 +1722,37 @@ class UserInterface {
 
     const allEvents = window.db.getAgenda() || [];
     const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const monthEvents = allEvents.filter(e => e.data.startsWith(monthPrefix));
+    const selectedDate = window.app.selectedCalendarDate;
+    
+    let monthEvents = [];
+    const titleSpan = document.getElementById('checklist-title');
+    const resetLink = document.getElementById('checklist-reset-link');
+
+    if (selectedDate) {
+      // Filtrar apenas para o dia selecionado
+      monthEvents = allEvents.filter(e => e.data === selectedDate);
+      if (titleSpan) {
+        titleSpan.textContent = `Tarefas de ${this.formatDate(selectedDate)}`;
+      }
+      if (resetLink) {
+        resetLink.classList.remove('hidden');
+      }
+    } else {
+      // Filtrar pelo mês inteiro
+      monthEvents = allEvents.filter(e => e.data.startsWith(monthPrefix));
+      if (titleSpan) {
+        titleSpan.textContent = `Tarefas do Mês`;
+      }
+      if (resetLink) {
+        resetLink.classList.add('hidden');
+      }
+    }
     
     // Sort by date ascending
     monthEvents.sort((a, b) => new Date(a.data) - new Date(b.data));
 
     if (monthEvents.length === 0) {
-      container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 13px; margin: 20px 0;">Nenhum manejo agendado para este mês.</p>`;
+      container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 13px; margin: 20px 0;">Nenhum manejo agendado ${selectedDate ? 'para este dia' : 'para este mês'}.</p>`;
       return;
     }
 
@@ -1752,6 +1863,198 @@ class UserInterface {
           </div>
         `;
       }
+    }).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  // --- RENDERIZAÇÃO ESTOQUE DE INSUMOS ---
+  renderEstoqueInsumosView(searchQuery = '', filterTipo = 'Todos') {
+    const tbody = document.getElementById('estoque-insumos-tbody');
+    if (!tbody) return;
+
+    let insumos = window.db.getEstoqueInsumos() || [];
+
+    // Filtros
+    if (filterTipo !== 'Todos') {
+      insumos = insumos.filter(i => i.tipo === filterTipo);
+    }
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      insumos = insumos.filter(i => (i.nome || '').toLowerCase().includes(q));
+    }
+
+    // Ordenar por validade (os mais próximos de vencer primeiro)
+    insumos.sort((a, b) => {
+      if (!a.validade) return 1;
+      if (!b.validade) return -1;
+      return new Date(a.validade) - new Date(b.validade);
+    });
+
+    if (insumos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Nenhum insumo encontrado no estoque físico.</td></tr>`;
+      return;
+    }
+
+    const hoje = new Date();
+
+    tbody.innerHTML = insumos.map(i => {
+      let statusHtml = '<span class="estoque-status-ok">✓ Ok</span>';
+      
+      // Validação de estoque mínimo
+      if (i.quantidade <= i.estoque_minimo) {
+        statusHtml = '<span class="estoque-status-baixo">⚠️ Baixo</span>';
+      }
+
+      // Validação de vencimento
+      if (i.validade) {
+        const dataVal = new Date(i.validade + 'T00:00:00');
+        if (dataVal < hoje) {
+          statusHtml = '<span class="estoque-status-vencido">❌ VENCIDO</span>';
+        } else {
+          // Diferença de dias
+          const diff = dataVal - hoje;
+          const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+          if (diffDays <= 30) {
+            statusHtml = `<span class="estoque-status-baixo">⚠️ Vence em ${diffDays}d</span>`;
+          }
+        }
+      }
+
+      const formattedValidade = i.validade ? this.formatDate(i.validade) : '-';
+
+      return `
+        <tr>
+          <td><strong>${this.escapeHTML(i.nome)}</strong></td>
+          <td><span class="badge badge-info" style="font-size: 11px;">${i.tipo}</span></td>
+          <td>${i.quantidade} ${i.unidade}</td>
+          <td>${this.escapeHTML(i.lote || '-')}</td>
+          <td>${formattedValidade}</td>
+          <td>${statusHtml}</td>
+          <td>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-secondary btn-xs" onclick="window.app.editInsumo(${i.id})" title="Editar Insumo" style="padding: 4px 6px;">
+                <i class="lucide-edit" style="width:12px; height:12px;"></i>
+              </button>
+              <button class="btn btn-danger btn-xs" onclick="window.app.deleteInsumo(${i.id})" title="Deletar Insumo" style="padding: 4px 6px;">
+                <i class="lucide-trash-2" style="width:12px; height:12px;"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  // --- RENDERIZAÇÃO COMPROMISSOS FINANCEIROS ---
+  renderCompromissosView(filterStatus = 'Todos', filterTipo = 'Todos') {
+    const tbody = document.getElementById('compromissos-tbody');
+    if (!tbody) return;
+
+    let compromissos = window.db.getCompromissos() || [];
+
+    // Filtros
+    if (filterStatus !== 'Todos') {
+      if (filterStatus === 'Atrasado') {
+        const hojeStr = new Date().toISOString().split('T')[0];
+        compromissos = compromissos.filter(c => c.status === 'Pendente' && c.vencimento < hojeStr);
+      } else {
+        compromissos = compromissos.filter(c => c.status === filterStatus);
+      }
+    }
+    if (filterTipo !== 'Todos') {
+      compromissos = compromissos.filter(c => c.tipo === filterTipo);
+    }
+
+    // Ordenar por vencimento (mais urgente primeiro)
+    compromissos.sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento));
+
+    // Cálculos dos totalizadores
+    let totalPagar = 0;
+    let totalReceber = 0;
+    
+    // Todos os compromissos ativos (independente de filtro da tabela)
+    const todosComp = window.db.getCompromissos() || [];
+    const hojeStr = new Date().toISOString().split('T')[0];
+
+    todosComp.forEach(c => {
+      if (c.status === 'Pendente') {
+        if (c.tipo === 'Pagar') totalPagar += c.valor;
+        else if (c.tipo === 'Receber') totalReceber += c.valor;
+      }
+    });
+
+    const saldoProjetado = totalReceber - totalPagar;
+
+    // Injeta nos cards
+    const cardPagar = document.getElementById('compromisso-resumo-pagar');
+    const cardReceber = document.getElementById('compromisso-resumo-receber');
+    const cardSaldo = document.getElementById('compromisso-resumo-saldo');
+
+    if (cardPagar) cardPagar.innerText = this.formatCurrency(totalPagar);
+    if (cardReceber) cardReceber.innerText = this.formatCurrency(totalReceber);
+    if (cardSaldo) {
+      cardSaldo.innerText = this.formatCurrency(saldoProjetado);
+      cardSaldo.style.color = saldoProjetado >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    if (compromissos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Nenhum compromisso financeiro cadastrado.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = compromissos.map(c => {
+      let badgeClass = 'badge-pendente';
+      let statusLabel = c.status;
+
+      if (c.status === 'Pago') {
+        badgeClass = 'badge-pago';
+        statusLabel = c.tipo === 'Pagar' ? 'Pago' : 'Recebido';
+      } else if (c.vencimento < hojeStr) {
+        badgeClass = 'badge-atrasado';
+        statusLabel = 'Atrasado';
+      }
+
+      const formattedVencimento = this.formatDate(c.vencimento);
+      const isPendente = c.status === 'Pendente';
+
+      return `
+        <tr>
+          <td><strong>${formattedVencimento}</strong></td>
+          <td>${this.escapeHTML(c.descricao)}</td>
+          <td><span style="font-size: 12px; color: var(--text-secondary);">${c.categoria}</span></td>
+          <td>
+            <span class="badge ${c.tipo === 'Pagar' ? 'badge-danger' : 'badge-success'}" style="font-size: 11px;">
+              ${c.tipo === 'Pagar' ? 'A Pagar' : 'A Receber'}
+            </span>
+          </td>
+          <td style="font-weight: 700; color: ${c.tipo === 'Pagar' ? 'var(--danger)' : 'var(--success)'};">
+            ${this.formatCurrency(c.valor)}
+          </td>
+          <td><span class="badge ${badgeClass}" style="font-size: 11px;">${statusLabel}</span></td>
+          <td>
+            <div style="display: flex; gap: 6px;">
+              ${isPendente ? `
+                <button class="btn btn-primary btn-xs" onclick="window.app.liquidarCompromisso(${c.id})" style="padding: 4px 6px;">
+                  Liquidar
+                </button>
+              ` : ''}
+              <button class="btn btn-secondary btn-xs" onclick="window.app.editCompromisso(${c.id})" title="Editar" style="padding: 4px 6px;">
+                <i class="lucide-edit" style="width:12px; height:12px;"></i>
+              </button>
+              <button class="btn btn-danger btn-xs" onclick="window.app.deleteCompromisso(${c.id})" title="Excluir" style="padding: 4px 6px;">
+                <i class="lucide-trash-2" style="width:12px; height:12px;"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
     }).join('');
 
     if (window.lucide) {

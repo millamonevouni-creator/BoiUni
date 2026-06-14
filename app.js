@@ -27,6 +27,7 @@ class AppController {
     const today = new Date();
     this.currentCalendarYear = today.getFullYear();
     this.currentCalendarMonth = today.getMonth();
+    this.selectedCalendarDate = null;
   }
 
   async init() {
@@ -146,6 +147,7 @@ class AppController {
     switch(tabId) {
       case 'dashboard':
         window.ui.renderDashboard();
+        this.renderDashboardAlerts();
         break;
       case 'animais':
         const catFilter = document.getElementById('animal-filter-tab')?.querySelector('.active')?.dataset.filter || 'Todos';
@@ -158,6 +160,9 @@ class AppController {
       case 'reproducao':
         window.ui.renderReproductionView();
         break;
+      case 'estoque-insumos':
+        window.ui.renderEstoqueInsumosView();
+        break;
       case 'transacoes':
         window.ui.renderTransactionsView();
         break;
@@ -166,6 +171,7 @@ class AppController {
         break;
       case 'custos':
         window.ui.renderPropertyCostsView();
+        window.ui.renderCompromissosView();
         break;
       case 'relatorios':
         window.ui.renderReportsView();
@@ -312,6 +318,174 @@ class AppController {
       });
     }
 
+    // Filtro por Categoria no modal de vendas
+    const saleFilterCategoria = document.getElementById('sale-filter-categoria');
+    if (saleFilterCategoria) {
+      saleFilterCategoria.addEventListener('change', (e) => {
+        const categoriaSelected = e.target.value;
+        if (categoriaSelected) {
+          // Desmarca filtro de lote e lote de venda pré-definido
+          const saleFilterLote = document.getElementById('sale-filter-lote-compra');
+          if (saleFilterLote) saleFilterLote.value = '';
+          const saleSelectLoteVenda = document.getElementById('sale-select-lote-venda');
+          if (saleSelectLoteVenda) saleSelectLoteVenda.value = '';
+          
+          const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+          checkboxes.forEach(cb => {
+            const item = cb.closest('.sale-animal-item');
+            if (item) {
+              const cat = item.getAttribute('data-categoria');
+              cb.checked = (cat === categoriaSelected);
+            }
+          });
+        } else {
+          // Se limpar, desmarca todos
+          const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+          checkboxes.forEach(cb => {
+            cb.checked = false;
+          });
+        }
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    // Filtro por Lote de Compra no modal de vendas
+    const saleFilterLote = document.getElementById('sale-filter-lote-compra');
+    if (saleFilterLote) {
+      saleFilterLote.addEventListener('change', (e) => {
+        const loteSelected = e.target.value;
+        if (loteSelected) {
+          // Desmarca filtro de categoria e lote de venda pré-definido
+          const saleFilterCat = document.getElementById('sale-filter-categoria');
+          if (saleFilterCat) saleFilterCat.value = '';
+          const saleSelectLoteVenda = document.getElementById('sale-select-lote-venda');
+          if (saleSelectLoteVenda) saleSelectLoteVenda.value = '';
+          
+          const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+          checkboxes.forEach(cb => {
+            const item = cb.closest('.sale-animal-item');
+            if (item) {
+              const lote = item.getAttribute('data-lote');
+              cb.checked = (lote === loteSelected);
+            }
+          });
+        } else {
+          // Se limpar, desmarca todos
+          const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+          checkboxes.forEach(cb => {
+            cb.checked = false;
+          });
+        }
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    // Filtro por Lote de Venda Pré-definido no modal de vendas
+    const saleSelectLoteVenda = document.getElementById('sale-select-lote-venda');
+    if (saleSelectLoteVenda) {
+      saleSelectLoteVenda.addEventListener('change', (e) => {
+        const loteId = e.target.value;
+        if (loteId) {
+          // Desmarca filtros ad-hoc
+          const saleFilterCat = document.getElementById('sale-filter-categoria');
+          const saleFilterLt = document.getElementById('sale-filter-lote-compra');
+          if (saleFilterCat) saleFilterCat.value = '';
+          if (saleFilterLt) saleFilterLt.value = '';
+
+          const lote = window.db.getLoteVenda(loteId);
+          if (lote && Array.isArray(lote.animais_ids)) {
+            const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+            checkboxes.forEach(cb => {
+              cb.checked = lote.animais_ids.includes(parseInt(cb.value));
+            });
+          }
+        } else {
+          // Se limpar, desmarca todos
+          const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+          checkboxes.forEach(cb => {
+            cb.checked = false;
+          });
+        }
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    // Botão Selecionar Todos no modal de vendas
+    const btnSaleSelectAll = document.getElementById('btn-sale-select-all');
+    if (btnSaleSelectAll) {
+      btnSaleSelectAll.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+        checkboxes.forEach(cb => {
+          const item = cb.closest('.sale-animal-item');
+          if (item && item.style.display !== 'none') {
+            cb.checked = true;
+          }
+        });
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    // Botão Limpar Seleção (Nenhum) no modal de vendas
+    const btnSaleClearAll = document.getElementById('btn-sale-clear-all');
+    if (btnSaleClearAll) {
+      btnSaleClearAll.addEventListener('click', () => {
+        const saleFilterCat = document.getElementById('sale-filter-categoria');
+        const saleFilterLt = document.getElementById('sale-filter-lote-compra');
+        const saleSelectLtVenda = document.getElementById('sale-select-lote-venda');
+        if (saleFilterCat) saleFilterCat.value = '';
+        if (saleFilterLt) saleFilterLt.value = '';
+        if (saleSelectLtVenda) saleSelectLtVenda.value = '';
+        
+        const checkboxes = document.querySelectorAll('.sale-animal-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = false;
+        });
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    // Busca reativa no cadastro de lote de venda (Configurações)
+    const loteVendaSearch = document.getElementById('lote-venda-search-animals');
+    if (loteVendaSearch) {
+      loteVendaSearch.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.lote-venda-animal-item');
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          if (text.includes(query)) {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // Botão Selecionar Todos no cadastro de lote de venda (Configurações)
+    const btnLoteVendaSelectAll = document.getElementById('btn-lote-venda-select-all');
+    if (btnLoteVendaSelectAll) {
+      btnLoteVendaSelectAll.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('.lote-venda-animal-checkbox');
+        checkboxes.forEach(cb => {
+          const item = cb.closest('.lote-venda-animal-item');
+          if (item && item.style.display !== 'none') {
+            cb.checked = true;
+          }
+        });
+      });
+    }
+
+    // Botão Limpar Seleção no cadastro de lote de venda (Configurações)
+    const btnLoteVendaClearAll = document.getElementById('btn-lote-venda-clear-all');
+    if (btnLoteVendaClearAll) {
+      btnLoteVendaClearAll.addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('.lote-venda-animal-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = false;
+        });
+      });
+    }
+
     // Evento de seleção de animal no modal de venda para somar pesos e atualizar sumário
     const saleListContainer = document.getElementById('sale-animals-list');
     if (saleListContainer) {
@@ -329,6 +503,41 @@ class AppController {
       });
     }
 
+    // Reatividade de precificação flexível (venda em lote)
+    const saleTipoValor = document.getElementById('sale-tipo-valor');
+    if (saleTipoValor) {
+      saleTipoValor.addEventListener('change', () => {
+        this.updateSalePricingVisibility();
+        this.updateSaleSelectedSummary();
+      });
+    }
+
+    const saleValorUnitario = document.getElementById('sale-valor-unitario');
+    if (saleValorUnitario) {
+      saleValorUnitario.addEventListener('input', (e) => {
+        const count = document.querySelectorAll('.sale-animal-checkbox:checked').length;
+        const unitVal = parseFloat(e.target.value) || 0;
+        const totalVal = unitVal * count;
+        const valTotalEl = document.getElementById('sale-valor');
+        if (valTotalEl) {
+          valTotalEl.value = totalVal > 0 ? totalVal.toFixed(2) : '';
+        }
+      });
+    }
+
+    const saleValorTotal = document.getElementById('sale-valor');
+    if (saleValorTotal) {
+      saleValorTotal.addEventListener('input', (e) => {
+        const count = document.querySelectorAll('.sale-animal-checkbox:checked').length;
+        const totalVal = parseFloat(e.target.value) || 0;
+        const unitVal = count > 0 ? (totalVal / count) : 0;
+        const valUnitEl = document.getElementById('sale-valor-unitario');
+        if (valUnitEl) {
+          valUnitEl.value = unitVal > 0 ? unitVal.toFixed(2) : '';
+        }
+      });
+    }
+
     // Submissão de Formulários
     this.bindFormSubmit('form-auth', (data) => this.handleAuthSubmit(data));
     this.bindFormSubmit('form-animal', (data) => this.handleAnimalSubmit(data));
@@ -341,6 +550,10 @@ class AppController {
     this.bindFormSubmit('form-client-modal', (data) => this.handleClientSubmit(data));
     this.bindFormSubmit('form-configuracoes', (data) => this.handleConfiguracoesSubmit(data));
     this.bindFormSubmit('form-change-password', (data) => this.handleChangePasswordSubmit(data));
+    
+    // Novos Formulários (Estoque e Compromissos)
+    this.bindFormSubmit('form-estoque-insumo', (data) => this.handleEstoqueInsumoSubmit(data));
+    this.bindFormSubmit('form-financeiro-compromisso', (data) => this.handleCompromissoSubmit(data));
 
     // Filtros de Custos da Fazenda
     const costSearch = document.getElementById('cost-filter-search');
@@ -354,6 +567,38 @@ class AppController {
     const costFilterPer = document.getElementById('cost-filter-periodo');
     if (costFilterPer) {
       costFilterPer.addEventListener('change', () => window.ui.renderPropertyCostsView());
+    }
+
+    // Filtros de Estoque de Insumos
+    const insumoSearch = document.getElementById('insumo-search');
+    if (insumoSearch) {
+      insumoSearch.addEventListener('input', () => {
+        const filterTipo = document.getElementById('insumo-filter-tipo')?.value || 'Todos';
+        window.ui.renderEstoqueInsumosView(insumoSearch.value, filterTipo);
+      });
+    }
+    const insumoFilterTipo = document.getElementById('insumo-filter-tipo');
+    if (insumoFilterTipo) {
+      insumoFilterTipo.addEventListener('change', () => {
+        const searchQuery = document.getElementById('insumo-search')?.value || '';
+        window.ui.renderEstoqueInsumosView(searchQuery, insumoFilterTipo.value);
+      });
+    }
+
+    // Filtros de Compromissos Financeiros
+    const compFilterStatus = document.getElementById('compromisso-filter-status');
+    if (compFilterStatus) {
+      compFilterStatus.addEventListener('change', () => {
+        const filterTipo = document.getElementById('compromisso-filter-tipo')?.value || 'Todos';
+        window.ui.renderCompromissosView(compFilterStatus.value, filterTipo);
+      });
+    }
+    const compFilterTipo = document.getElementById('compromisso-filter-tipo');
+    if (compFilterTipo) {
+      compFilterTipo.addEventListener('change', () => {
+        const filterStatus = document.getElementById('compromisso-filter-status')?.value || 'Todos';
+        window.ui.renderCompromissosView(filterStatus, compFilterTipo.value);
+      });
     }
 
     // Fechar modais ao clicar no overlay
@@ -541,7 +786,8 @@ class AppController {
           nascimento: data.nascimento,
           origem: data.origem,
           foto: '',
-          peso_atual: parseFloat(data.peso_atual) || 0
+          peso_atual: parseFloat(data.peso_atual) || 0,
+          status: data.status || 'Ativo'
         };
 
         const saved = window.db.saveAnimal(animalData);
@@ -583,7 +829,8 @@ class AppController {
         nascimento: data.nascimento,
         origem: data.origem,
         foto: '',
-        peso_atual: parseFloat(data.peso_atual) || 0
+        peso_atual: parseFloat(data.peso_atual) || 0,
+        status: data.status || 'Ativo'
       };
 
       if (isEdit) {
@@ -683,8 +930,42 @@ class AppController {
       mae_id: parseInt(data.mae_id),
       pai_id: data.pai_id ? parseInt(data.pai_id) : null,
       data: data.nascimento,
-      peso_ao_nascer: parseFloat(data.peso_ao_nascer) || 0
+      peso_ao_nascer: parseFloat(data.peso_ao_nascer) || 0,
+      cura_umbigo: data.cura_umbigo || 'Não',
+      vacina_aplicada: data.vacina_aplicada || '',
+      vermifugo_aplicado: data.vermifugo_aplicado || ''
     });
+
+    // 3. Lógica de Manejo Sanitário Inicial Automático no Prontuário do Bezerro
+    if (data.cura_umbigo === 'Sim') {
+      window.db.addExpense({
+        animal_id: calf.id,
+        tipo: 'Medicamento',
+        descricao: 'Cura do Umbigo',
+        valor: 0,
+        data: data.nascimento
+      });
+    }
+
+    if (data.vacina_aplicada && data.vacina_aplicada.trim() !== '') {
+      window.db.addExpense({
+        animal_id: calf.id,
+        tipo: 'Vacina',
+        descricao: data.vacina_aplicada.trim(),
+        valor: 0,
+        data: data.nascimento
+      });
+    }
+
+    if (data.vermifugo_aplicado && data.vermifugo_aplicado.trim() !== '') {
+      window.db.addExpense({
+        animal_id: calf.id,
+        tipo: 'Medicamento',
+        descricao: data.vermifugo_aplicado.trim(),
+        valor: 0,
+        data: data.nascimento
+      });
+    }
 
     window.ui.showToast('Nascimento registrado com sucesso e bezerro adicionado ao estoque!');
     document.getElementById('form-birth').reset();
@@ -844,6 +1125,8 @@ class AppController {
 
   // Atualiza peso total e quantidade de animais selecionados no modal de vendas
   updateSaleSelectedSummary() {
+    this.updateSalePricingVisibility();
+
     const checkedBoxes = Array.from(document.querySelectorAll('.sale-animal-checkbox:checked'));
     const summary = document.getElementById('sale-selected-summary');
     const pesoInput = document.getElementById('sale-peso-venda');
@@ -851,6 +1134,12 @@ class AppController {
     if (checkedBoxes.length === 0) {
       if (summary) summary.textContent = 'Nenhum animal selecionado.';
       if (pesoInput) pesoInput.value = '';
+      
+      const valTotalEl = document.getElementById('sale-valor');
+      const valUnitEl = document.getElementById('sale-valor-unitario');
+      if (valTotalEl) valTotalEl.value = '';
+      if (valUnitEl) valUnitEl.value = '';
+
       this.checkSalesCarenciaWarnings();
       return;
     }
@@ -866,7 +1155,71 @@ class AppController {
       pesoInput.value = totalPeso.toFixed(1);
     }
 
+    // Recálculo flexível de valor unitário/total
+    const tipoVal = document.getElementById('sale-tipo-valor')?.value || 'unitario';
+    const valTotalEl = document.getElementById('sale-valor');
+    const valUnitEl = document.getElementById('sale-valor-unitario');
+    
+    if (tipoVal === 'unitario') {
+      const unitVal = parseFloat(valUnitEl?.value) || 0;
+      const totalVal = unitVal * count;
+      if (valTotalEl) valTotalEl.value = totalVal > 0 ? totalVal.toFixed(2) : '';
+    } else {
+      const totalVal = parseFloat(valTotalEl?.value) || 0;
+      const unitVal = count > 0 ? (totalVal / count) : 0;
+      if (valUnitEl) valUnitEl.value = unitVal > 0 ? unitVal.toFixed(2) : '';
+    }
+
     this.checkSalesCarenciaWarnings();
+  }
+
+  updateSalePricingVisibility() {
+    const filterLote = document.getElementById('sale-filter-lote-compra');
+    const selectLoteVenda = document.getElementById('sale-select-lote-venda');
+    const group = document.getElementById('sale-tipo-valor-group');
+    const tipoValEl = document.getElementById('sale-tipo-valor');
+    const valUnitInput = document.getElementById('sale-valor-unitario');
+    const valTotalInput = document.getElementById('sale-valor');
+
+    const hasLoteSelected = !!((filterLote && filterLote.value) || (selectLoteVenda && selectLoteVenda.value));
+
+    if (group) {
+      if (hasLoteSelected) {
+        if (group.style.display === 'none') {
+          if (tipoValEl) tipoValEl.value = 'total';
+        }
+        group.style.display = 'block';
+      } else {
+        group.style.display = 'none';
+        if (tipoValEl) tipoValEl.value = 'unitario';
+      }
+    }
+
+    const tipoVal = tipoValEl?.value || 'unitario';
+
+    if (tipoVal === 'unitario') {
+      if (valUnitInput) {
+        valUnitInput.removeAttribute('readonly');
+        valUnitInput.style.backgroundColor = 'var(--bg-app)';
+        valUnitInput.style.color = 'var(--text-main)';
+      }
+      if (valTotalInput) {
+        valTotalInput.setAttribute('readonly', 'true');
+        valTotalInput.style.backgroundColor = 'var(--bg-surface-subtle)';
+        valTotalInput.style.color = 'var(--text-muted)';
+      }
+    } else {
+      if (valTotalInput) {
+        valTotalInput.removeAttribute('readonly');
+        valTotalInput.style.backgroundColor = 'var(--bg-app)';
+        valTotalInput.style.color = 'var(--text-main)';
+      }
+      if (valUnitInput) {
+        valUnitInput.setAttribute('readonly', 'true');
+        valUnitInput.style.backgroundColor = 'var(--bg-surface-subtle)';
+        valUnitInput.style.color = 'var(--text-muted)';
+      }
+    }
   }
 
   // Verifica carência sanitária dos animais selecionados para venda
@@ -1100,13 +1453,81 @@ class AppController {
       }
 
       // Ordena por brinco
-      listToShow.sort((a, b) => a.brinco.localeCompare(b.brinco));
+      listToShow.sort((a, b) => String(a.brinco || '').localeCompare(String(b.brinco || '')));
+
+      // Mapear lotes de compra conjunta ativos
+      const purchases = window.db.getPurchases() || [];
+      const clients = window.db.getClients() || [];
+      const purchaseByAnimalId = {};
+      purchases.forEach(p => {
+        purchaseByAnimalId[p.animal_id] = p;
+      });
+
+      const lotesMap = {};
+      activeAnimals.forEach(a => {
+        const p = purchaseByAnimalId[a.id];
+        if (p && p.compra_grupo_id) {
+          const groupId = p.compra_grupo_id;
+          if (!lotesMap[groupId]) {
+            const supplier = clients.find(c => c.id === p.fornecedor) || { nome: 'Desconhecido' };
+            lotesMap[groupId] = {
+              id: groupId,
+              count: 0,
+              fornecedorNome: supplier.nome,
+              date: p.data || ''
+            };
+          }
+          lotesMap[groupId].count++;
+        }
+      });
+
+      const loteSelect = document.getElementById('sale-filter-lote-compra');
+      if (loteSelect) {
+        const activeLotes = Object.values(lotesMap);
+        activeLotes.sort((a, b) => b.id - a.id);
+        loteSelect.innerHTML = '<option value="">Filtrar Lote Compra...</option>' +
+          activeLotes.map(l => {
+            const dateStr = l.date ? ` - ${window.ui.formatDate(l.date)}` : '';
+            return `<option value="${l.id}">Lote #${l.id} (${l.count} Cab.) - ${window.ui.escapeHTML(l.fornecedorNome)}${dateStr}</option>`;
+          }).join('');
+        loteSelect.value = '';
+      }
+
+      // Popula o select de Lotes de Venda Pré-definidos
+      const saleSelectLoteVenda = document.getElementById('sale-select-lote-venda');
+      if (saleSelectLoteVenda) {
+        const lotesVenda = window.db.getLotesVenda();
+        const activeLotesVenda = lotesVenda.filter(l => {
+          return Array.isArray(l.animais_ids) && l.animais_ids.some(id => activeAnimals.some(a => a.id === id));
+        });
+        saleSelectLoteVenda.innerHTML = '<option value="">Carregar Lote de Venda Pré-definido...</option>' +
+          activeLotesVenda.map(l => {
+            const count = l.animais_ids.length;
+            return `<option value="${l.id}">${window.ui.escapeHTML(l.nome)} (${count} Cab.)</option>`;
+          }).join('');
+        saleSelectLoteVenda.value = '';
+      }
+
+      // Reset da precificação flexível
+      const valUnitInput = document.getElementById('sale-valor-unitario');
+      if (valUnitInput) valUnitInput.value = '';
+      const valTotalInput = document.getElementById('sale-valor');
+      if (valTotalInput) valTotalInput.value = '';
+      this.updateSalePricingVisibility();
+
+      const catSelect = document.getElementById('sale-filter-categoria');
+      if (catSelect) {
+        catSelect.value = '';
+      }
 
       listContainer.innerHTML = listToShow.map(a => {
         const isChecked = (targetAnimal && a.id === targetAnimal.id) ? 'checked' : '';
         const isDisabled = (preselectedAnimalId) ? 'disabled' : '';
+        const purchase = purchaseByAnimalId[a.id];
+        const loteId = purchase ? (purchase.compra_grupo_id || '') : '';
+        
         return `
-          <label class="sale-animal-item" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background-color 0.2s;">
+          <label class="sale-animal-item" data-categoria="${a.categoria}" data-lote="${loteId}" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; transition: background-color 0.2s;">
             <input type="checkbox" value="${a.id}" class="sale-animal-checkbox" ${isChecked} ${isDisabled} data-peso="${a.peso_atual || 0}" style="width: 16px; height: 16px; cursor: pointer;">
             <span style="font-size: 13px; color: var(--text-main);">
               Brinco <strong>${a.brinco}</strong> - ${a.nome || 'Sem Nome'} (${a.raca}, ${a.categoria}, ${a.peso_atual || 0} kg)
@@ -1208,6 +1629,7 @@ class AppController {
     window.ui.populateRacaDropdown(animal.raca);
     document.getElementById('animal-categoria').value = animal.categoria;
     document.getElementById('animal-nascimento').value = animal.nascimento;
+    document.getElementById('animal-status').value = animal.status || 'Ativo';
     
     // Na edição, bloqueamos a troca de origem e campos relacionados a compra/nascimento 
     // para evitar quebra de integridade
@@ -1455,8 +1877,9 @@ class AppController {
       const el = document.getElementById(id);
       if (el) el.value = val;
     }
-    window.ui.renderRacasConfig();
+     window.ui.renderRacasConfig();
     window.ui.renderMedicamentosConfig();
+    window.ui.renderLotesVendaConfig();
   }
 
   async handleConfiguracoesSubmit(data) {
@@ -1467,6 +1890,47 @@ class AppController {
     } catch (err) {
       console.error("Erro ao salvar configurações:", err);
       window.ui.showToast('Erro ao salvar configurações.', 'error');
+    }
+  }
+
+  handleAddLoteVenda() {
+    const nomeInput = document.getElementById('config-lote-venda-nome');
+    if (!nomeInput) return;
+
+    const nome = nomeInput.value.trim();
+    if (!nome) {
+      window.ui.showToast('Digite o nome do lote!', 'error');
+      return;
+    }
+
+    const checkedBoxes = Array.from(document.querySelectorAll('.lote-venda-animal-checkbox:checked'));
+    if (checkedBoxes.length === 0) {
+      window.ui.showToast('Selecione pelo menos um animal para compor o lote!', 'error');
+      return;
+    }
+
+    const animaisIds = checkedBoxes.map(cb => parseInt(cb.value));
+
+    const result = window.db.addLoteVenda({
+      nome: nome,
+      animais_ids: animaisIds,
+      status: 'Ativo'
+    });
+
+    if (result) {
+      window.ui.showToast('Lote de venda criado com sucesso!');
+      nomeInput.value = '';
+      window.ui.renderLotesVendaConfig();
+    } else {
+      window.ui.showToast('Erro: Já existe um lote de venda com este nome.', 'error');
+    }
+  }
+
+  handleDeleteLoteVenda(id) {
+    if (confirm('Tem certeza que deseja excluir este lote de venda? Os animais continuarão ativos normalmente.')) {
+      window.db.deleteLoteVenda(id);
+      window.ui.showToast('Lote de venda excluído com sucesso!');
+      window.ui.renderLotesVendaConfig();
     }
   }
 
@@ -2173,7 +2637,9 @@ class AppController {
       const expenses = window.db.getExpenses() || [];
       const medicamentos = window.db.getMedicamentos() || [];
       const active = animals.filter(a => a.status === 'Ativo');
-      const today = new Date();
+      const todayStr = window.ui.todayString();
+      const [tY, tM, tD] = todayStr.split('-').map(Number);
+      const today = new Date(tY, tM - 1, tD);
       today.setHours(0,0,0,0);
       
       const carenciasList = [];
@@ -3497,6 +3963,22 @@ class AppController {
       this.currentCalendarMonth = 0;
       this.currentCalendarYear++;
     }
+    // Ao navegar no calendário, limpamos o filtro do dia selecionado
+    this.selectedCalendarDate = null;
+    this.renderCalendar();
+  }
+
+  selectCalendarDay(dateStr) {
+    if (this.selectedCalendarDate === dateStr) {
+      this.selectedCalendarDate = null;
+    } else {
+      this.selectedCalendarDate = dateStr;
+    }
+    this.renderCalendar();
+  }
+
+  clearSelectedDayFilter() {
+    this.selectedCalendarDate = null;
     this.renderCalendar();
   }
 
@@ -3609,7 +4091,7 @@ class AppController {
     
     const dateInput = document.getElementById('agenda-data');
     if (dateInput) {
-      dateInput.value = dateStr || window.ui.todayString();
+      dateInput.value = dateStr || this.selectedCalendarDate || window.ui.todayString();
     }
     
     this.populateAgendaAnimalSelect(null, null);
@@ -3677,21 +4159,41 @@ class AppController {
         const getRecurrenceDates = (startDateStr, freq) => {
           const [year, month, day] = startDateStr.split('-').map(Number);
           const dates = [startDateStr];
-          let step = 0;
-          let count = 0;
           
-          if (freq === 'Mensal') { step = 1; count = 11; }
-          else if (freq === 'Trimestral') { step = 3; count = 3; }
-          else if (freq === 'Semestral') { step = 6; count = 1; }
-          else if (freq === 'Anual') { step = 12; count = 2; }
-          
-          for (let i = 1; i <= count; i++) {
-            const nextDate = new Date(year, month - 1, day);
-            nextDate.setMonth(nextDate.getMonth() + (i * step));
-            const y = nextDate.getFullYear();
-            const m = String(nextDate.getMonth() + 1).padStart(2, '0');
-            const d = String(nextDate.getDate()).padStart(2, '0');
-            dates.push(`${y}-${m}-${d}`);
+          if (freq === 'Diaria') {
+            for (let i = 1; i <= 30; i++) { // Repete por 30 dias
+              const nextDate = new Date(year, month - 1, day);
+              nextDate.setDate(nextDate.getDate() + i);
+              const y = nextDate.getFullYear();
+              const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+              const d = String(nextDate.getDate()).padStart(2, '0');
+              dates.push(`${y}-${m}-${d}`);
+            }
+          } else if (freq === 'Semanal') {
+            for (let i = 1; i <= 12; i++) { // Repete por 12 semanas
+              const nextDate = new Date(year, month - 1, day);
+              nextDate.setDate(nextDate.getDate() + (i * 7));
+              const y = nextDate.getFullYear();
+              const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+              const d = String(nextDate.getDate()).padStart(2, '0');
+              dates.push(`${y}-${m}-${d}`);
+            }
+          } else {
+            let step = 0;
+            let count = 0;
+            if (freq === 'Mensal') { step = 1; count = 11; }
+            else if (freq === 'Trimestral') { step = 3; count = 3; }
+            else if (freq === 'Semestral') { step = 6; count = 1; }
+            else if (freq === 'Anual') { step = 12; count = 2; }
+            
+            for (let i = 1; i <= count; i++) {
+              const nextDate = new Date(year, month - 1, day);
+              nextDate.setMonth(nextDate.getMonth() + (i * step));
+              const y = nextDate.getFullYear();
+              const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+              const d = String(nextDate.getDate()).padStart(2, '0');
+              dates.push(`${y}-${m}-${d}`);
+            }
           }
           return dates;
         };
@@ -4035,6 +4537,362 @@ class AppController {
         }
         e.target.value = value;
       });
+    }
+  }
+
+  // --- SUB-ABAS DE CUSTOS/FINANCEIRO ---
+  switchSubTab(tabId, button) {
+    document.querySelectorAll('.custos-sub-section').forEach(s => s.classList.add('hidden'));
+    const target = document.getElementById(tabId);
+    if (target) target.classList.remove('hidden');
+
+    button.parentNode.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+
+    if (tabId === 'sec-custos-operacionais') {
+      window.ui.renderPropertyCostsView();
+    } else if (tabId === 'sec-financeiro-compromissos') {
+      window.ui.renderCompromissosView();
+    }
+  }
+
+  // --- CONTROLE DE ESTOQUE DE INSUMOS ---
+  handleEstoqueInsumoSubmit(data) {
+    const isEdit = !!data.id;
+    const insumoData = {
+      tipo: data.tipo,
+      nome: data.nome,
+      quantidade: parseFloat(data.quantidade) || 0,
+      unidade: data.unidade,
+      lote: data.lote || '',
+      validade: data.validade || '',
+      estoque_minimo: parseFloat(data.estoque_minimo) || 0
+    };
+
+    if (isEdit) {
+      window.db.updateEstoqueInsumo(data.id, insumoData);
+      window.ui.showToast('Insumo atualizado com sucesso!');
+    } else {
+      window.db.addEstoqueInsumo(insumoData);
+      window.ui.showToast('Insumo cadastrado no estoque físico!');
+    }
+
+    const form = document.getElementById('form-estoque-insumo');
+    if (form) form.reset();
+    document.getElementById('insumo-id').value = '';
+    document.getElementById('btn-insumo-cancel').classList.add('hidden');
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Registrar Insumo';
+
+    window.ui.renderEstoqueInsumosView();
+    this.populateMedicamentosDatalist();
+  }
+
+  editInsumo(id) {
+    const insumos = window.db.getEstoqueInsumos();
+    const insumo = insumos.find(i => i.id === parseInt(id));
+    if (!insumo) return;
+
+    document.getElementById('insumo-id').value = insumo.id;
+    document.getElementById('insumo-tipo').value = insumo.tipo;
+    document.getElementById('insumo-nome').value = insumo.nome;
+    document.getElementById('insumo-quantidade').value = insumo.quantidade;
+    document.getElementById('insumo-unidade').value = insumo.unidade;
+    document.getElementById('insumo-lote').value = insumo.lote || '';
+    document.getElementById('insumo-validade').value = insumo.validade || '';
+    document.getElementById('insumo-minimo').value = insumo.estoque_minimo || 5;
+
+    document.getElementById('btn-insumo-cancel').classList.remove('hidden');
+    const form = document.getElementById('form-estoque-insumo');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Salvar Alterações';
+  }
+
+  cancelEditInsumo() {
+    const form = document.getElementById('form-estoque-insumo');
+    if (form) form.reset();
+    document.getElementById('insumo-id').value = '';
+    document.getElementById('btn-insumo-cancel').classList.add('hidden');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Registrar Insumo';
+  }
+
+  deleteInsumo(id) {
+    if (confirm('Deseja realmente remover este insumo do estoque físico?')) {
+      window.db.deleteEstoqueInsumo(id);
+      window.ui.showToast('Insumo removido do estoque.');
+      window.ui.renderEstoqueInsumosView();
+      this.populateMedicamentosDatalist();
+    }
+  }
+
+  // --- CONTROLE DE COMPROMISSOS FINANCEIROS ---
+  handleCompromissoSubmit(data) {
+    const isEdit = !!data.id;
+    const compData = {
+      tipo: data.tipo,
+      descricao: data.descricao,
+      valor: parseFloat(data.valor) || 0,
+      categoria: data.categoria,
+      vencimento: data.vencimento,
+      status: data.status
+    };
+
+    if (isEdit) {
+      const old = window.db.getCompromissos().find(c => c.id === parseInt(data.id));
+      compData.pagamento = old ? old.pagamento : null;
+      
+      const comps = window.db.getCompromissos();
+      const idx = comps.findIndex(c => c.id === parseInt(data.id));
+      if (idx !== -1) {
+        comps[idx] = { ...comps[idx], ...compData };
+        window.db._set(window.db.DB_KEYS.FINANCEIRO_COMPROMISSOS, comps);
+        if (window.db.supabaseClient) {
+          window.db.supabaseClient.from('financeiro_compromissos').update({
+            tipo: compData.tipo,
+            descricao: compData.descricao,
+            valor: compData.valor,
+            categoria: compData.categoria,
+            vencimento: compData.vencimento,
+            status: compData.status
+          }).eq('id', parseInt(data.id)).then(({error}) => { if(error) console.error(error); });
+        }
+      }
+      window.ui.showToast('Compromisso financeiro atualizado!');
+    } else {
+      window.db.addCompromisso(compData);
+      window.ui.showToast('Compromisso financeiro agendado!');
+    }
+
+    const form = document.getElementById('form-financeiro-compromisso');
+    if (form) form.reset();
+    document.getElementById('compromisso-id').value = '';
+    document.getElementById('btn-compromisso-cancel').classList.add('hidden');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Agendar Compromisso';
+
+    window.ui.renderCompromissosView();
+  }
+
+  liquidarCompromisso(id) {
+    const hoje = new Date().toISOString().split('T')[0];
+    window.db.updateCompromissoStatus(id, 'Pago', hoje);
+    window.ui.showToast('Conta liquidada com sucesso!');
+    window.ui.renderCompromissosView();
+    
+    const comp = window.db.getCompromissos().find(c => c.id === parseInt(id));
+    if (comp) {
+      if (comp.tipo === 'Pagar') {
+        window.db.addPropertyCost({
+          categoria: comp.categoria,
+          descricao: comp.descricao,
+          valor: comp.valor,
+          data: hoje,
+          periodicidade: 'Única'
+        });
+        window.ui.renderPropertyCostsView();
+      }
+    }
+  }
+
+  editCompromisso(id) {
+    const comps = window.db.getCompromissos();
+    const comp = comps.find(c => c.id === parseInt(id));
+    if (!comp) return;
+
+    document.getElementById('compromisso-id').value = comp.id;
+    document.getElementById('compromisso-tipo').value = comp.tipo;
+    document.getElementById('compromisso-descricao').value = comp.descricao;
+    document.getElementById('compromisso-valor').value = comp.valor;
+    document.getElementById('compromisso-categoria').value = comp.categoria;
+    document.getElementById('compromisso-vencimento').value = comp.vencimento;
+    document.getElementById('compromisso-status').value = comp.status;
+
+    document.getElementById('btn-compromisso-cancel').classList.remove('hidden');
+    const form = document.getElementById('form-financeiro-compromisso');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Salvar Alterações';
+  }
+
+  cancelEditCompromisso() {
+    const form = document.getElementById('form-financeiro-compromisso');
+    if (form) form.reset();
+    document.getElementById('compromisso-id').value = '';
+    document.getElementById('btn-compromisso-cancel').classList.add('hidden');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Agendar Compromisso';
+  }
+
+  deleteCompromisso(id) {
+    if (confirm('Deseja realmente excluir este compromisso financeiro?')) {
+      window.db.deleteCompromisso(id);
+      window.ui.showToast('Compromisso excluído.');
+      window.ui.renderCompromissosView();
+    }
+  }
+
+  // --- LÓGICA DE ALERTAS CRÍTICOS (DASHBOARD) ---
+  renderDashboardAlerts() {
+    const container = document.getElementById('dashboard-alerts-container');
+    const list = document.getElementById('dashboard-alerts-list');
+    const badge = document.getElementById('alerts-count-badge');
+    if (!container || !list) return;
+
+    const alerts = [];
+    const hojeStr = window.ui.todayString();
+    const [hY, hM, hD] = hojeStr.split('-').map(Number);
+    const hoje = new Date(hY, hM - 1, hD);
+    hoje.setHours(0,0,0,0);
+
+    // 1. Alertas de Validade de Insumos
+    const insumos = window.db.getEstoqueInsumos() || [];
+    insumos.forEach(i => {
+      if (i.validade) {
+        const dataVal = new Date(i.validade + 'T00:00:00');
+        if (dataVal < hoje) {
+          alerts.push({
+            tipo: 'danger',
+            mensagem: `O estoque do insumo <strong>${i.nome}</strong> está <strong>VENCIDO</strong> (Venceu em ${window.ui.formatDate(i.validade)}).`,
+            icone: 'lucide-alert-octagon'
+          });
+        } else {
+          const diff = dataVal - hoje;
+          const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+          if (diffDays <= 30) {
+            alerts.push({
+              tipo: 'warning',
+              mensagem: `O insumo <strong>${i.nome}</strong> está próximo de vencer (Vence em ${diffDays} dias).`,
+              icone: 'lucide-calendar-off'
+            });
+          }
+        }
+      }
+    });
+
+    // 2. Alertas de Estoque Mínimo
+    insumos.forEach(i => {
+      if (i.quantidade <= i.estoque_minimo) {
+        alerts.push({
+          tipo: 'warning',
+          mensagem: `O estoque do insumo <strong>${i.nome}</strong> está baixo (${i.quantidade} ${i.unidade} restantes).`,
+          icone: 'lucide-package'
+        });
+      }
+    });
+
+    // 3. Alertas de Carência Ativa em Animais para Venda
+    const animals = window.db.getAnimals() || [];
+    const activeAnimals = animals.filter(a => a.status === 'Ativo');
+    const medicamentos = window.db.getMedicamentos() || [];
+
+    activeAnimals.forEach(a => {
+      const expenses = window.db.getAnimalExpenses(a.id) || [];
+      const sanitary = expenses.filter(e => e.tipo === 'Vacina' || e.tipo === 'Medicamento');
+      
+      sanitary.forEach(e => {
+        const medConfig = medicamentos.find(m => m.nome.trim().toLowerCase() === (e.descricao || '').trim().toLowerCase());
+        if (medConfig && medConfig.carencia_dias > 0) {
+          const [year, month, day] = e.data.split('-').map(Number);
+          const appDate = new Date(year, month - 1, day);
+          const endDate = new Date(appDate);
+          endDate.setDate(endDate.getDate() + medConfig.carencia_dias);
+
+          if (endDate >= hoje) {
+            const diff = endDate - hoje;
+            const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            alerts.push({
+              tipo: 'danger',
+              mensagem: `O animal <strong>Brinco ${a.brinco}</strong> (${a.nome || 'Sem Nome'}) está em carência por <strong>${e.descricao}</strong>. Liberado em ${window.ui.formatDate(endDate.toISOString().split('T')[0])} (${diffDays}d restantes).`,
+              icone: 'lucide-shield-alert'
+            });
+          }
+        }
+      });
+    });
+
+    // 4. Alertas de Contas a Pagar Atrasadas/Vencendo Hoje
+    const compromissos = window.db.getCompromissos() || [];
+    compromissos.forEach(c => {
+      if (c.status === 'Pendente' && c.tipo === 'Pagar') {
+        if (c.vencimento < hojeStr) {
+          alerts.push({
+            tipo: 'danger',
+            mensagem: `A conta a pagar <strong>"${c.descricao}"</strong> no valor de <strong>${window.ui.formatCurrency(c.valor)}</strong> está <strong>ATRASADA</strong> (Venceu em ${window.ui.formatDate(c.vencimento)}).`,
+            icone: 'lucide-dollar-sign'
+          });
+        } else if (c.vencimento === hojeStr) {
+          alerts.push({
+            tipo: 'warning',
+            mensagem: `A conta a pagar <strong>"${c.descricao}"</strong> no valor de <strong>${window.ui.formatCurrency(c.valor)}</strong> vence <strong>HOJE</strong>.`,
+            icone: 'lucide-clock'
+          });
+        }
+      }
+    });
+
+    // 5. Alertas de Animais Sem Pesagem há mais de 3 meses (90 dias)
+    const weights = window.db.getWeights() || [];
+    activeAnimals.forEach(a => {
+      const animalWeights = weights.filter(w => w.animal_id === a.id).sort((w1, w2) => new Date(w2.data) - new Date(w1.data));
+      if (animalWeights.length > 0) {
+        const lastWeightDate = new Date(animalWeights[0].data + 'T00:00:00');
+        const diff = hoje - lastWeightDate;
+        const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        if (diffDays > 90) {
+          alerts.push({
+            tipo: 'info',
+            mensagem: `O animal <strong>Brinco ${a.brinco}</strong> (${a.nome || 'Sem Nome'}) está sem pesagem há <strong>${diffDays} dias</strong> (Recomendado pesar trimestralmente).`,
+            icone: 'lucide-scale'
+          });
+        }
+      }
+    });
+
+    // 6. Alertas de Manejos/Tarefas da Agenda Atrasados ou Hoje
+    const agendaItems = window.db.getAgenda() || [];
+    agendaItems.forEach(item => {
+      if (item.status === 'Pendente') {
+        if (item.data < hojeStr) {
+          alerts.push({
+            tipo: 'danger',
+            mensagem: `O manejo/tarefa <strong>"${item.titulo}"</strong> agendado para <strong>${window.ui.formatDate(item.data)}</strong> está <strong>ATRASADO</strong>.`,
+            icone: 'lucide-check-square'
+          });
+        } else if (item.data === hojeStr) {
+          alerts.push({
+            tipo: 'warning',
+            mensagem: `O manejo/tarefa <strong>"${item.titulo}"</strong> está programado para ser realizado <strong>HOJE</strong>.`,
+            icone: 'lucide-check-square'
+          });
+        }
+      }
+    });
+
+    // Atualiza a visualização do container
+    if (alerts.length === 0) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    if (badge) badge.innerText = `${alerts.length} ${alerts.length === 1 ? 'alerta' : 'alertas'}`;
+
+    list.innerHTML = alerts.map(a => {
+      let borderClass = 'alert-danger';
+      if (a.tipo === 'warning') borderClass = 'alert-warning';
+      else if (a.tipo === 'info') borderClass = 'alert-info';
+
+      return `
+        <div class="alert-item ${borderClass}">
+          <i class="${a.icone}" style="width: 16px; height: 16px; flex-shrink: 0; color: ${a.tipo === 'danger' ? 'var(--danger)' : a.tipo === 'warning' ? 'var(--warning)' : 'var(--primary)'};"></i>
+          <div class="alert-item-content">${a.mensagem}</div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
     }
   }
 }

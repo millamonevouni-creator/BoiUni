@@ -1,0 +1,8 @@
+# robots.txt - BoiUni
+# https://boiuni.vercel.app
+
+User-agent: *
+Allow: /
+Disallow: /scratch/
+
+Sitemap: https://boiuni.vercel.app/sitemap.xml
